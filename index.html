@@ -3,25 +3,78 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>PoGo Открытки</title>
+    <title>База Открыток</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <header>
-        <h1>Учет открыток PoGo</h1>
-    </header>
+
+    <div class="top-bar">
+        <button id="btnOpenAddModal" class="btn-primary">+ Добавить открытку</button>
+        
+        <input type="text" id="searchInput" placeholder="Поиск по названию..." autocomplete="off">
+        
+        <div class="controls-right">
+            <select id="sortSelect">
+                <option value="dateDesc">По дате (новые сверху)</option>
+                <option value="dateAsc">По дате (старые сверху)</option>
+                <option value="alphaAsc">По алфавиту (А-Я)</option>
+                <option value="alphaDesc">По алфавиту (Я-А)</option>
+                <option value="country">Группировка: Страна</option>
+                <option value="region">Группировка: Регион</option>
+                <option value="city">Группировка: Город</option>
+            </select>
+
+            <select id="filterStatus">
+                <option value="all">Все открытки</option>
+                <option value="completed">Только собранные (у всех)</option>
+                <option value="missing">Нужны копии (не у всех)</option>
+            </select>
+
+            <select id="filterCountry"><option value="all">Все страны</option></select>
+            <select id="filterRegion"><option value="all">Все регионы</option></select>
+            <select id="filterCity"><option value="all">Все города</option></select>
+        </div>
+    </div>
 
     <main>
-        <section class="upload-section">
-            <h2>Добавить открытку</h2>
+        <div id="galleryGrid" class="gallery-grid">
+            </div>
+    </main>
+
+    <div id="addModal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Новая открытка</h2>
+                <button id="btnCloseAddModal" class="btn-close">&times;</button>
+            </div>
             <form id="uploadForm">
-                <input type="text" id="stopName" placeholder="Название покестопа (обязательно)" autocomplete="off" required>
-                
-                <div class="file-input-wrapper">
-                    <button type="button" class="btn-select-file">Выбрать скриншот</button>
-                    <input type="file" id="imageInput" accept="image/*" required>
+                <label>Название покестопа (обязательно):</label>
+                <input type="text" id="stopName" required>
+
+                <div class="form-row">
+                    <div>
+                        <label>Дата открытки:</label>
+                        <input type="date" id="stopDate">
+                    </div>
                 </div>
-                <div id="fileNameDisplay">Файл не выбран</div>
+
+                <div class="form-row">
+                    <div>
+                        <label>Страна:</label>
+                        <input type="text" id="stopCountry">
+                    </div>
+                    <div>
+                        <label>Регион:</label>
+                        <input type="text" id="stopRegion">
+                    </div>
+                    <div>
+                        <label>Город:</label>
+                        <input type="text" id="stopCity">
+                    </div>
+                </div>
+
+                <label>Скриншот (необязательно):</label>
+                <input type="file" id="imageInput" accept="image/*">
 
                 <div class="checkbox-group">
                     <label><input type="checkbox" id="chkAlbum"> Альбом</label>
@@ -29,18 +82,11 @@
                     <label><input type="checkbox" id="chkFriend2"> CUMKILLER</label>
                 </div>
 
-                <button type="submit" id="submitBtn" class="btn-submit">Загрузить</button>
+                <button type="submit" id="submitBtn" class="btn-submit">Сохранить открытку</button>
+                <div id="loadingIndicator" class="hidden">Сохранение...</div>
             </form>
-            <div id="loadingIndicator" class="hidden">Загрузка в облако... Пожалуйста, подождите.</div>
-        </section>
-
-        <section class="gallery-section">
-            <h2>База открыток</h2>
-            <input type="text" id="searchInput" placeholder="Поиск по названию..." autocomplete="off">
-            <div id="galleryGrid" class="gallery-grid">
-                </div>
-        </section>
-    </main>
+        </div>
+    </div>
 
     <script type="module" src="app.js"></script>
 </body>
