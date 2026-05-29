@@ -24,10 +24,13 @@
             </div>
         </div>
         
-        <button id="btnOpenFilters" class="mobile-only btn-filter-trigger">🎛️</button>
+        <button id="btnOpenFilters" class="mobile-only btn-filter-trigger">↕️</button>
         
         <div id="controlsRight" class="controls-right">
-            <h3 class="mobile-only" style="margin-bottom: 10px;">Сортировка и фильтры</h3>
+            <div class="mobile-only modal-header" style="width: 100%; margin-bottom: 0;">
+                <h2>Сортировка</h2>
+                <button id="btnCloseFilters" class="btn-close">&times;</button>
+            </div>
             
             <select id="sortSelect">
                 <option value="dateDesc">По дате (новые сверху)</option>
@@ -49,7 +52,7 @@
             <select id="filterRegion"><option value="all">Все регионы</option></select>
             <select id="filterCity"><option value="all">Все города</option></select>
             
-            <button id="btnApplyFilters" class="mobile-only btn-submit" style="margin-top:20px;">Применить</button>
+            <button id="btnApplyFilters" class="mobile-only btn-submit" style="margin-top:10px;">Применить</button>
         </div>
     </div>
 
@@ -57,7 +60,7 @@
         <div id="galleryGrid" class="gallery-grid"></div>
     </main>
 
-    <button id="btnScrollTop" class="btn-scroll-top hidden">▲</button>
+    <button id="btnScrollTop" class="btn-scroll-top hidden"></button>
 
     <div id="addModal" class="modal-overlay hidden">
         <div class="modal-content">
