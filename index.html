@@ -27,7 +27,7 @@
         <button id="btnOpenFilters" class="mobile-only btn-filter-trigger">↕️</button>
         
         <div id="controlsRight" class="controls-right">
-            <div class="mobile-only modal-header" style="width: 100%; margin-bottom: 0;">
+            <div class="mobile-only modal-header">
                 <h2>Сортировка</h2>
                 <button id="btnCloseFilters" class="btn-close">&times;</button>
             </div>
@@ -52,7 +52,7 @@
             <select id="filterRegion"><option value="all">Все регионы</option></select>
             <select id="filterCity"><option value="all">Все города</option></select>
             
-            <button id="btnApplyFilters" class="mobile-only btn-submit" style="margin-top:10px;">Применить</button>
+            <button id="btnApplyFilters" class="mobile-only btn-submit">Применить</button>
         </div>
     </div>
 
@@ -65,20 +65,22 @@
     <div id="addModal" class="modal-overlay hidden">
         <div class="modal-content">
             <div class="modal-header">
-                <h2>Новая открытка</h2>
+                <h2 id="modalTitle">Новая открытка</h2>
                 <button id="btnCloseAddModal" class="btn-close">&times;</button>
             </div>
             <form id="uploadForm">
+                <input type="hidden" id="editCardId">
+
                 <label>Название покестопа (обязательно):</label>
                 <input type="text" id="stopName" required autocomplete="off">
 
                 <label>Дата открытки (8 цифр ДДММГГГГ или календарь):</label>
                 <div class="date-input-group">
                     <input type="text" id="stopDateText" placeholder="Например: 19052026" maxlength="8" autocomplete="off">
-                    <div class="calendar-btn">
+                    <button type="button" id="btnCalendarTrigger" class="calendar-btn">
                         📅
                         <input type="date" id="stopDateNative">
-                    </div>
+                    </button>
                 </div>
 
                 <div class="form-row">
@@ -87,13 +89,14 @@
                         <input type="text" id="stopCountry" list="countriesList" autocomplete="off">
                     </div>
                     <div>
-                        <label>Регион:</label>
-                        <input type="text" id="stopRegion" list="regionsList" autocomplete="off">
-                    </div>
-                    <div>
                         <label>Город:</label>
                         <input type="text" id="stopCity" list="citiesList" autocomplete="off">
                     </div>
+                </div>
+
+                <div class="form-group-full">
+                    <label>Регион:</label>
+                    <input type="text" id="stopRegion" list="regionsList" autocomplete="off">
                 </div>
 
                 <label>Скриншот (обрежется автоматически):</label>
@@ -106,6 +109,7 @@
                 </div>
 
                 <button type="submit" id="submitBtn" class="btn-submit">Сохранить открытку</button>
+                <button type="button" id="btnDeleteCard" class="btn-delete-small hidden">Удалить открытку</button>
                 <div id="loadingIndicator" class="hidden">Обработка и сохранение...</div>
             </form>
         </div>
