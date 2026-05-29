@@ -71,3 +71,21 @@ input[type="text"] { width: 100%; padding: 12px; margin-bottom: 15px; border: 1p
 .btn-delete:hover {
     background: #ef9a9a;
 }
+
+/* Поле поиска */
+#searchInput {
+    width: 100%;
+    padding: 12px;
+    margin-bottom: 20px;
+    border: 2px solid #ddd;
+    border-radius: 8px;
+    font-size: 1rem;
+    box-sizing: border-box;
+    transition: 0.3s;
+}
+
+#searchInput:focus {
+    border-color: #ffca28; /* Желтый цвет в стиле PoGo */
+    outline: none;
+    box-shadow: 0 0 8px rgba(255, 202, 40, 0.3);
+}
