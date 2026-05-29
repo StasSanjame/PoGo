@@ -214,6 +214,13 @@ function resetAllFilters() {
     filterCountry.value = 'all';
     filterRegion.value = 'all';
     filterCity.value = 'all';
+    
+    // Сброс направления
+    currentDirection = 'from_me';
+    directionSelectPC.value = 'from_me';
+    directionSelectMobile.value = 'from_me';
+    filterStatus.classList.remove('hidden'); // Возвращаем фильтр статусов
+    
     renderGallery();
 }
 document.getElementById('btnResetPC').addEventListener('click', resetAllFilters);
