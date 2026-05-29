@@ -3,7 +3,6 @@ import { getFirestore, collection, addDoc, onSnapshot, query, updateDoc, doc, de
 import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
 
 // ==========================================
-// ВСТАВЬ СВОЙ КОНФИГ СЮДА
 const firebaseConfig = {
     apiKey: "AIzaSyBlFUq_" + "oLSJbPSPi5VcidO_Aat03NrbMl4",
     authDomain: "pogopostcards-bfed2.firebaseapp.com",
@@ -20,6 +19,7 @@ const storage = getStorage(app);
 
 const galleryGrid = document.getElementById('galleryGrid');
 const searchInput = document.getElementById('searchInput');
+const controlsRight = document.getElementById('controlsRight');
 
 const sortSelect = document.getElementById('sortSelect');
 const filterStatus = document.getElementById('filterStatus');
@@ -32,7 +32,10 @@ const btnOpenAddModal = document.getElementById('btnOpenAddModal');
 const btnCloseAddModal = document.getElementById('btnCloseAddModal');
 const uploadForm = document.getElementById('uploadForm');
 
-// Кэш всех открыток вместе с их готовыми HTML-нодами
+const btnOpenFilters = document.getElementById('btnOpenFilters');
+const btnApplyFilters = document.getElementById('btnApplyFilters');
+const btnScrollTop = document.getElementById('btnScrollTop');
+
 let allCards = [];
 
 // === ОБРЕЗКА СКРИНШОТА ===
@@ -48,8 +51,7 @@ async function cropImage(file) {
             const topCrop = img.height * topCropRatio;
             const targetHeight = img.height * targetHeightRatio;
 
-            canvas.width = img.width;
-            canvas.height = targetHeight;
+            canvas.width = img.width; canvas.height = targetHeight;
             ctx.drawImage(img, 0, topCrop, img.width, targetHeight, 0, 0, canvas.width, canvas.height);
             canvas.toBlob((blob) => resolve(blob), file.type || 'image/jpeg', 0.9);
         };
@@ -58,50 +60,96 @@ async function cropImage(file) {
     });
 }
 
-// === УПРАВЛЕНИЕ ДАТАМИ (Парсинг и Форматирование) ===
-function setupDateInputs(textInput, nativeInput) {
-    // Пользователь убирает фокус с текстового поля (превращаем 19052026 в 19.05.2026)
-    textInput.addEventListener('blur', (e) => {
-        let val = e.target.value.replace(/\D/g, ''); // Оставляем только цифры
-        if (val.length === 8) {
-            e.target.value = `${val.substring(0,2)}.${val.substring(2,4)}.${val.substring(4,8)}`;
-        }
-    });
-    // Пользователь выбрал дату через календарь (переносим её в текст)
-    nativeInput.addEventListener('change', (e) => {
-        if (e.target.value) {
-            const parts = e.target.value.split('-'); // Календарь всегда дает ГГГГ-ММ-ДД
-            textInput.value = `${parts[2]}.${parts[1]}.${parts[0]}`;
-        }
-    });
+// === СТРОГАЯ ВАЛИДАЦИЯ ДАТЫ И ПРЕОБРАЗОВАНИЕ В ГГГГ-ММ-ДД ===
+function validateAndParseDate(str) {
+    if (!str) return ""; // Пустая дата допускается
+    
+    // 1. Проверяем, что в строке строго 8 цифр и ничего более
+    if (!/^\d{8}$/.test(str)) {
+        alert("Ошибка: Дата должна состоять ровно из 8 цифр в формате ДДММГГГГ (например, 19052026) без точек и пробелов.");
+        return null;
+    }
+
+    const day = parseInt(str.substring(0, 2), 10);
+    const month = parseInt(str.substring(2, 4), 10);
+    const year = parseInt(str.substring(4, 8), 10);
+
+    // 2. Проверяем валидность календаря (дни, месяцы, високосные года)
+    const dateObj = new Date(year, month - 1, day);
+    if (dateObj.getFullYear() === year && dateObj.getMonth() === month - 1 && dateObj.getDate() === day) {
+        const mStr = String(month).padStart(2, '0');
+        const dStr = String(day).padStart(2, '0');
+        return `${year}-${mStr}-${dStr}`; // Всё ок, возвращаем формат для БД
+    } else {
+        alert(`Ошибка: Даты ${day}.${month}.${year} не существует в календаре.`);
+        return null;
+    }
 }
 
-// Вызов настройки дат для главной формы
-setupDateInputs(document.getElementById('stopDateText'), document.getElementById('stopDateNative'));
-
-// Конвертер ДД.ММ.ГГГГ -> ГГГГ-ММ-ДД (для Базы Данных и правильной сортировки)
-function parseToDbFormat(displayStr) {
-    if(!displayStr) return "";
-    const parts = displayStr.split('.');
-    if (parts.length === 3) return `${parts[2]}-${parts[1]}-${parts[0]}`;
-    return displayStr;
-}
-
-// Конвертер ГГГГ-ММ-ДД -> ДД.ММ.ГГГГ (для показа пользователю)
-function formatToDisplayFormat(dbStr) {
+// Перевод из формата БД (ГГГГ-ММ-ДД) в текст для пользователя (ДДММГГГГ)
+function formatToUserText(dbStr) {
     if (!dbStr) return "";
+    const parts = dbStr.split('-');
+    if (parts.length === 3) return `${parts[2]}${parts[1]}${parts[0]}`;
+    return dbStr;
+}
+
+// Показ даты в карточке для чтения (ДД.ММ.ГГГГ)
+function formatToDisplay(dbStr) {
+    if (!dbStr) return "Дата не указана";
     const parts = dbStr.split('-');
     if (parts.length === 3) return `${parts[2]}.${parts[1]}.${parts[0]}`;
     return dbStr;
 }
 
-// === УПРАВЛЕНИЕ МОДАЛЬНЫМ ОКНОМ ===
+// === СИНХРОНИЗАЦИЯ ПОЛЕЙ ДАТЫ И ФИКС КАЛЕНДАРЯ НА ПК ===
+function setupDateInputs(textInput, nativeInput, container) {
+    // Нажатие на иконку календаря теперь принудительно вызывает окно на ПК
+    const calendarBtn = container.querySelector('.calendar-btn');
+    calendarBtn.addEventListener('click', (e) => {
+        if (e.target !== nativeInput) {
+            try { nativeInput.showPicker(); } catch (err) { nativeInput.click(); }
+        }
+    });
+
+    // Изменение даты через календарь заносит данные в текстовое поле в формате ДДММГГГГ
+    nativeInput.addEventListener('change', (e) => {
+        if (e.target.value) {
+            const parts = e.target.value.split('-'); // ГГГГ-ММ-ДД
+            textInput.value = `${parts[2]}${parts[1]}${parts[0]}`;
+        }
+    });
+}
+
+// Настройка для главного окна добавления
+setupDateInputs(document.getElementById('stopDateText'), document.getElementById('stopDateNative'), document.getElementById('addModal'));
+
+// === УПРАВЛЕНИЕ МОБИЛЬНЫМИ ФИЛЬТРАМИ ===
+btnOpenFilters.addEventListener('click', () => controlsRight.classList.add('open'));
+btnApplyFilters.addEventListener('click', () => controlsRight.classList.remove('open'));
+
+// === КНОПКА НАВЕРХ ===
+window.addEventListener('scroll', () => {
+    if (window.scrollY > 400) btnScrollTop.classList.remove('hidden');
+    else btnScrollTop.classList.add('hidden');
+});
+btnScrollTop.addEventListener('click', () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+});
+
+// Модалка добавления
 btnOpenAddModal.addEventListener('click', () => addModal.classList.remove('hidden'));
 btnCloseAddModal.addEventListener('click', () => addModal.classList.add('hidden'));
 
 // === СОХРАНЕНИЕ НОВОЙ ОТКРЫТКИ ===
 uploadForm.addEventListener('submit', async (e) => {
     e.preventDefault();
+    
+    // Проверяем и парсим дату
+    const rawDateText = document.getElementById('stopDateText').value.trim();
+    const parsedDate = validateAndParseDate(rawDateText);
+    if (rawDateText && parsedDate === null) return; // Остановка, если дата введена с ошибкой
+
     const btn = document.getElementById('submitBtn');
     const loading = document.getElementById('loadingIndicator');
     btn.disabled = true; loading.classList.remove('hidden');
@@ -119,15 +167,14 @@ uploadForm.addEventListener('submit', async (e) => {
 
         const dataObj = {
             name: document.getElementById('stopName').value.trim(),
-            date: parseToDbFormat(document.getElementById('stopDateText').value.trim()), // Конвертируем для БД!
+            date: parsedDate,
             country: document.getElementById('stopCountry').value.trim(),
             region: document.getElementById('stopRegion').value.trim(),
             city: document.getElementById('stopCity').value.trim(),
             album: document.getElementById('chkAlbum').checked,
             friend1: document.getElementById('chkFriend1').checked,
             friend2: document.getElementById('chkFriend2').checked,
-            imageUrl: imageUrl,
-            imagePath: imagePath,
+            imageUrl: imageUrl, imagePath: imagePath,
             createdAt: serverTimestamp()
         };
 
@@ -135,19 +182,18 @@ uploadForm.addEventListener('submit', async (e) => {
         uploadForm.reset();
         addModal.classList.add('hidden');
     } catch (error) {
-        console.error("Ошибка сохранения: ", error);
-        alert("Произошла ошибка при сохранении.");
+        console.error(error); alert("Ошибка при сохранении.");
     } finally {
         btn.disabled = false; loading.classList.add('hidden');
     }
 });
 
-// === ОПТИМИЗИРОВАННОЕ ПОЛУЧЕНИЕ ДАННЫХ (КЭШИРОВАНИЕ DOM) ===
+// === СЛУШАТЕЛЬ БД (БЕЗ МИГАНИЯ DOM) ===
 onSnapshot(query(collection(db, "postcards")), (snapshot) => {
     snapshot.docChanges().forEach((change) => {
         if (change.type === "added") {
             const data = { id: change.doc.id, ...change.doc.data() };
-            data.node = createCardReadView(data); // Создаем HTML один раз!
+            data.node = createCardReadView(data);
             allCards.push(data);
         }
         if (change.type === "modified") {
@@ -156,7 +202,7 @@ onSnapshot(query(collection(db, "postcards")), (snapshot) => {
                 const data = { id: change.doc.id, ...change.doc.data() };
                 const oldNode = allCards[index].node;
                 data.node = createCardReadView(data);
-                if (oldNode.parentNode) oldNode.replaceWith(data.node); // Заменяем узел прямо в DOM
+                if (oldNode.parentNode) oldNode.replaceWith(data.node);
                 allCards[index] = data;
             }
         }
@@ -168,12 +214,9 @@ onSnapshot(query(collection(db, "postcards")), (snapshot) => {
             }
         }
     });
-    
-    updateFilterOptions();
-    renderGallery();
+    updateFilterOptions(); renderGallery();
 });
 
-// === ОБНОВЛЕНИЕ ФИЛЬТРОВ И АВТОЗАПОЛНЕНИЯ ===
 function updateFilterOptions() {
     const countries = new Set(); const regions = new Set(); const cities = new Set();
     allCards.forEach(card => {
@@ -181,41 +224,28 @@ function updateFilterOptions() {
         if(card.region) regions.add(card.region);
         if(card.city) cities.add(card.city);
     });
-
     populateSelect(filterCountry, countries, "Все страны");
     populateSelect(filterRegion, regions, "Все регионы");
     populateSelect(filterCity, cities, "Все города");
-
     populateDatalist('countriesList', countries);
     populateDatalist('regionsList', regions);
     populateDatalist('citiesList', cities);
 }
 
-function populateSelect(selectElement, itemsSet, defaultText) {
-    const currentValue = selectElement.value;
-    selectElement.innerHTML = `<option value="all">${defaultText}</option>`;
-    [...itemsSet].sort().forEach(item => {
-        const option = document.createElement('option');
-        option.value = item; option.textContent = item;
-        selectElement.appendChild(option);
-    });
-    if ([...itemsSet].includes(currentValue)) selectElement.value = currentValue;
+function populateSelect(sel, items, defText) {
+    const cur = sel.value; sel.innerHTML = `<option value="all">${defText}</option>`;
+    [...items].sort().forEach(i => { const o = document.createElement('option'); o.value = i; o.textContent = i; sel.appendChild(o); });
+    if ([...items].includes(cur)) sel.value = cur;
 }
 
-function populateDatalist(datalistId, itemsSet) {
-    const datalist = document.getElementById(datalistId);
-    if (!datalist) return;
-    datalist.innerHTML = '';
-    [...itemsSet].sort().forEach(item => {
-        const option = document.createElement('option'); option.value = item; datalist.appendChild(option);
-    });
+function populateDatalist(id, items) {
+    const dl = document.getElementById(id); if (!dl) return; dl.innerHTML = '';
+    [...items].sort().forEach(i => { const o = document.createElement('option'); o.value = i; dl.appendChild(o); });
 }
 
-// === МГНОВЕННАЯ ФИЛЬТРАЦИЯ (Без перерисовки DOM!) ===
 function renderGallery() {
     let filtered = [...allCards];
     const queryText = searchInput.value.toLowerCase();
-
     if (queryText) filtered = filtered.filter(c => (c.name || "").toLowerCase().includes(queryText));
 
     const statusVal = filterStatus.value;
@@ -238,11 +268,8 @@ function renderGallery() {
         return 0;
     });
 
-    // Вместо удаления innerHTML мы просто переставляем существующие узлы DOM
     galleryGrid.innerHTML = ''; 
-    filtered.forEach(data => {
-        galleryGrid.appendChild(data.node); // Картинки не будут мигать и грузиться заново!
-    });
+    filtered.forEach(data => galleryGrid.appendChild(data.node));
 }
 
 searchInput.addEventListener('input', renderGallery);
@@ -252,10 +279,9 @@ filterCountry.addEventListener('change', renderGallery);
 filterRegion.addEventListener('change', renderGallery);
 filterCity.addEventListener('change', renderGallery);
 
-// === СОЗДАНИЕ КАРТОЧКИ (ЧТЕНИЕ) ===
+// === ЧТЕНИЕ КАРТОЧКИ ===
 function createCardReadView(data) {
-    const card = document.createElement('div');
-    card.className = 'card';
+    const card = document.createElement('div'); card.className = 'card';
     const imgHtml = data.imageUrl ? `<img src="${data.imageUrl}" loading="lazy">` : ``;
     const locArr = [data.country, data.region, data.city].filter(Boolean);
     const locText = locArr.length > 0 ? locArr.join(', ') : "Локация не указана";
@@ -265,8 +291,7 @@ function createCardReadView(data) {
         <div class="card-content">
             <div class="card-title">${data.name || "Без названия"}</div>
             <div class="card-location">
-                🗓 ${formatToDisplayFormat(data.date) || "Дата не указана"}<br>
-                📍 ${locText}
+                🗓 ${formatToDisplay(data.date)}<br>📍 ${locText}
             </div>
             <ul class="status-list">
                 <li>${data.album ? '✅' : '❌'} Альбом</li>
@@ -276,75 +301,57 @@ function createCardReadView(data) {
             <button class="btn-edit">Редактировать</button>
         </div>
     `;
-
     card.querySelector('.btn-edit').onclick = () => card.replaceWith(createCardEditView(data));
     return card;
 }
 
-// === СОЗДАНИЕ КАРТОЧКИ (РЕДАКТИРОВАНИЕ) ===
+// === РЕДАКТИРОВАНИЕ КАРТОЧКИ ===
 function createCardEditView(data) {
-    const card = document.createElement('div');
-    card.className = 'card';
+    const card = document.createElement('div'); card.className = 'card';
     card.style.border = "1px solid var(--btn-primary)";
-
-    // Генерируем уникальные ID для полей даты конкретно этой карточки
-    const txtId = `editDateTxt_${data.id}`;
-    const natId = `editDateNat_${data.id}`;
+    const txtId = `editTxt_${data.id}`; const natId = `editNat_${data.id}`;
 
     card.innerHTML = `
         <div class="card-content" style="padding-top: 10px;">
-            <label>Название:</label>
-            <input type="text" class="edit-name" value="${data.name || ''}">
-
-            <label>Дата:</label>
+            <label>Название:</label><input type="text" class="edit-name" value="${data.name || ''}">
+            <label>Дата (8 цифр ДДММГГГГ):</label>
             <div class="date-input-group" style="margin-bottom:15px;">
-                <input type="text" id="${txtId}" class="edit-date-text" value="${formatToDisplayFormat(data.date)}" placeholder="ДД.ММ.ГГГГ">
-                <div class="calendar-btn">
-                    📅
-                    <input type="date" id="${natId}">
-                </div>
+                <input type="text" id="${txtId}" class="edit-date-text" value="${formatToUserText(data.date)}" placeholder="Например: 19052026" maxlength="8">
+                <div class="calendar-btn">📅<input type="date" id="${natId}"></div>
             </div>
-
             <div class="form-row">
                 <div><label>Страна:</label><input type="text" class="edit-country" list="countriesList" value="${data.country || ''}"></div>
                 <div><label>Регион:</label><input type="text" class="edit-region" list="regionsList" value="${data.region || ''}"></div>
             </div>
             <label>Город:</label><input type="text" class="edit-city" list="citiesList" value="${data.city || ''}" style="margin-bottom:10px;">
-
-            <label>Заменить/Добавить скриншот:</label>
-            <input type="file" class="edit-img" accept="image/*">
-
+            <label>Заменить скриншот:</label><input type="file" class="edit-img" accept="image/*">
             <div class="checkbox-group">
                 <label><input type="checkbox" class="edit-album" ${data.album ? 'checked' : ''}> Альбом</label>
                 <label><input type="checkbox" class="edit-f1" ${data.friend1 ? 'checked' : ''}> Tupra</label>
                 <label><input type="checkbox" class="edit-f2" ${data.friend2 ? 'checked' : ''}> CUMKILLER</label>
             </div>
-
             <button class="btn-submit btn-save">Сохранить</button>
             <button class="btn-cancel">Отмена</button>
             <button class="btn-delete-small">🗑 Удалить</button>
         </div>
     `;
 
-    // Активируем логику дат для режима редактирования
-    setTimeout(() => {
-        setupDateInputs(document.getElementById(txtId), document.getElementById(natId));
-    }, 0);
+    setTimeout(() => { setupDateInputs(document.getElementById(txtId), document.getElementById(natId), card); }, 0);
 
-    // Кнопка ОТМЕНА
-    card.querySelector('.btn-cancel').onclick = () => {
-        card.replaceWith(data.node); // Возвращаем оригинальную сохраненную ноду
-    };
+    // Кнопка ОТМЕНА — возвращает оригинальный DOM-элемент без лишних запросов
+    card.querySelector('.btn-cancel').onclick = () => card.replaceWith(data.node);
 
     card.querySelector('.btn-save').onclick = async () => {
+        const rawDateText = document.getElementById(txtId).value.trim();
+        const parsedDate = validateAndParseDate(rawDateText);
+        if (rawDateText && parsedDate === null) return;
+
         const btnSave = card.querySelector('.btn-save');
-        btnSave.textContent = "Сохранение...";
-        btnSave.disabled = true;
+        btnSave.textContent = "Сохранение..."; btnSave.disabled = true;
 
         try {
             const newFile = card.querySelector('.edit-img').files[0];
-            let newImageUrl = data.imageUrl;
-            let newImagePath = data.imagePath;
+            let newImageUrl = data.imageUrl; let newImagePath = data.imagePath;
 
             if (newFile) {
                 const croppedBlob = await cropImage(newFile);
@@ -352,37 +359,34 @@ function createCardEditView(data) {
                 const fileRef = ref(storage, newImagePath);
                 await uploadBytes(fileRef, croppedBlob);
                 newImageUrl = await getDownloadURL(fileRef);
-                if (data.imagePath) await deleteObject(ref(storage, data.imagePath)).catch(e => console.log("Старое фото не удалено"));
+                if (data.imagePath) await deleteObject(ref(storage, data.imagePath)).catch(e => {});
             }
 
             const updatedData = {
                 name: card.querySelector('.edit-name').value.trim(),
-                date: parseToDbFormat(document.getElementById(txtId).value.trim()), // В БД уходит ГГГГ-ММ-ДД
+                date: parsedDate,
                 country: card.querySelector('.edit-country').value.trim(),
                 region: card.querySelector('.edit-region').value.trim(),
                 city: card.querySelector('.edit-city').value.trim(),
                 album: card.querySelector('.edit-album').checked,
                 friend1: card.querySelector('.edit-f1').checked,
                 friend2: card.querySelector('.edit-f2').checked,
-                imageUrl: newImageUrl,
-                imagePath: newImagePath
+                imageUrl: newImageUrl, imagePath: newImagePath
             };
-
             await updateDoc(doc(db, "postcards", data.id), updatedData);
         } catch (error) {
-            console.error("Ошибка:", error); alert("Не удалось сохранить.");
+            console.error(error); alert("Не удалось сохранить.");
             btnSave.textContent = "Сохранить"; btnSave.disabled = false;
         }
     };
 
     card.querySelector('.btn-delete-small').onclick = async () => {
-        if (confirm(`Точно удалить открытку "${data.name}" НАВСЕГДА?`)) {
+        if (confirm(`Удалить открытку "${data.name}"?`)) {
             try {
                 await deleteDoc(doc(db, "postcards", data.id));
                 if (data.imagePath) await deleteObject(ref(storage, data.imagePath));
-            } catch (error) { console.error("Ошибка удаления:", error); }
+            } catch (error) { console.error(error); }
         }
     };
-
     return card;
 }
