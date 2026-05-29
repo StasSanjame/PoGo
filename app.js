@@ -32,43 +32,70 @@ const btnOpenAddModal = document.getElementById('btnOpenAddModal');
 const btnCloseAddModal = document.getElementById('btnCloseAddModal');
 const uploadForm = document.getElementById('uploadForm');
 
+// Кэш всех открыток вместе с их готовыми HTML-нодами
 let allCards = [];
 
-// === ФУНКЦИЯ ОБРЕЗКИ СКРИНШОТА ===
-// Пропорционально отрезает верх и низ (эквивалент 601px и 826px от 2532px)
+// === ОБРЕЗКА СКРИНШОТА ===
 async function cropImage(file) {
     return new Promise((resolve, reject) => {
         const img = new Image();
         img.onload = () => {
             const canvas = document.createElement('canvas');
             const ctx = canvas.getContext('2d');
-
-            // Высчитываем пропорции относительно оригинального размера 1170x2532
             const originalHeight = 2532;
             const topCropRatio = 601 / originalHeight;
             const targetHeightRatio = 1105 / originalHeight;
-
             const topCrop = img.height * topCropRatio;
             const targetHeight = img.height * targetHeightRatio;
 
             canvas.width = img.width;
             canvas.height = targetHeight;
-
-            // Рисуем обрезанную часть на canvas
             ctx.drawImage(img, 0, topCrop, img.width, targetHeight, 0, 0, canvas.width, canvas.height);
-
-            // Конвертируем обратно в файл
-            canvas.toBlob((blob) => {
-                resolve(blob);
-            }, file.type || 'image/jpeg', 0.9);
+            canvas.toBlob((blob) => resolve(blob), file.type || 'image/jpeg', 0.9);
         };
         img.onerror = reject;
         img.src = URL.createObjectURL(file);
     });
 }
 
+// === УПРАВЛЕНИЕ ДАТАМИ (Парсинг и Форматирование) ===
+function setupDateInputs(textInput, nativeInput) {
+    // Пользователь убирает фокус с текстового поля (превращаем 19052026 в 19.05.2026)
+    textInput.addEventListener('blur', (e) => {
+        let val = e.target.value.replace(/\D/g, ''); // Оставляем только цифры
+        if (val.length === 8) {
+            e.target.value = `${val.substring(0,2)}.${val.substring(2,4)}.${val.substring(4,8)}`;
+        }
+    });
+    // Пользователь выбрал дату через календарь (переносим её в текст)
+    nativeInput.addEventListener('change', (e) => {
+        if (e.target.value) {
+            const parts = e.target.value.split('-'); // Календарь всегда дает ГГГГ-ММ-ДД
+            textInput.value = `${parts[2]}.${parts[1]}.${parts[0]}`;
+        }
+    });
+}
 
-// Управление модальным окном
+// Вызов настройки дат для главной формы
+setupDateInputs(document.getElementById('stopDateText'), document.getElementById('stopDateNative'));
+
+// Конвертер ДД.ММ.ГГГГ -> ГГГГ-ММ-ДД (для Базы Данных и правильной сортировки)
+function parseToDbFormat(displayStr) {
+    if(!displayStr) return "";
+    const parts = displayStr.split('.');
+    if (parts.length === 3) return `${parts[2]}-${parts[1]}-${parts[0]}`;
+    return displayStr;
+}
+
+// Конвертер ГГГГ-ММ-ДД -> ДД.ММ.ГГГГ (для показа пользователю)
+function formatToDisplayFormat(dbStr) {
+    if (!dbStr) return "";
+    const parts = dbStr.split('-');
+    if (parts.length === 3) return `${parts[2]}.${parts[1]}.${parts[0]}`;
+    return dbStr;
+}
+
+// === УПРАВЛЕНИЕ МОДАЛЬНЫМ ОКНОМ ===
 btnOpenAddModal.addEventListener('click', () => addModal.classList.remove('hidden'));
 btnCloseAddModal.addEventListener('click', () => addModal.classList.add('hidden'));
 
@@ -77,28 +104,22 @@ uploadForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     const btn = document.getElementById('submitBtn');
     const loading = document.getElementById('loadingIndicator');
-    
-    btn.disabled = true;
-    loading.classList.remove('hidden');
+    btn.disabled = true; loading.classList.remove('hidden');
 
     try {
         const file = document.getElementById('imageInput').files[0];
-        let imageUrl = null;
-        let imagePath = null;
-
+        let imageUrl = null; let imagePath = null;
         if (file) {
-            // Обрезаем картинку перед загрузкой!
             const croppedBlob = await cropImage(file);
-            
             imagePath = 'postcards/' + Date.now() + '_' + file.name;
             const fileRef = ref(storage, imagePath);
-            await uploadBytes(fileRef, croppedBlob); // Загружаем обрезанную
+            await uploadBytes(fileRef, croppedBlob);
             imageUrl = await getDownloadURL(fileRef);
         }
 
         const dataObj = {
             name: document.getElementById('stopName').value.trim(),
-            date: document.getElementById('stopDate').value || "",
+            date: parseToDbFormat(document.getElementById('stopDateText').value.trim()), // Конвертируем для БД!
             country: document.getElementById('stopCountry').value.trim(),
             region: document.getElementById('stopRegion').value.trim(),
             city: document.getElementById('stopCity').value.trim(),
@@ -111,47 +132,60 @@ uploadForm.addEventListener('submit', async (e) => {
         };
 
         await addDoc(collection(db, "postcards"), dataObj);
-        
         uploadForm.reset();
         addModal.classList.add('hidden');
     } catch (error) {
         console.error("Ошибка сохранения: ", error);
         alert("Произошла ошибка при сохранении.");
     } finally {
-        btn.disabled = false;
-        loading.classList.add('hidden');
+        btn.disabled = false; loading.classList.add('hidden');
     }
 });
 
-// === ПОЛУЧЕНИЕ ДАННЫХ ===
+// === ОПТИМИЗИРОВАННОЕ ПОЛУЧЕНИЕ ДАННЫХ (КЭШИРОВАНИЕ DOM) ===
 onSnapshot(query(collection(db, "postcards")), (snapshot) => {
-    allCards = [];
-    snapshot.forEach((doc) => {
-        allCards.push({ id: doc.id, ...doc.data() });
+    snapshot.docChanges().forEach((change) => {
+        if (change.type === "added") {
+            const data = { id: change.doc.id, ...change.doc.data() };
+            data.node = createCardReadView(data); // Создаем HTML один раз!
+            allCards.push(data);
+        }
+        if (change.type === "modified") {
+            const index = allCards.findIndex(c => c.id === change.doc.id);
+            if (index !== -1) {
+                const data = { id: change.doc.id, ...change.doc.data() };
+                const oldNode = allCards[index].node;
+                data.node = createCardReadView(data);
+                if (oldNode.parentNode) oldNode.replaceWith(data.node); // Заменяем узел прямо в DOM
+                allCards[index] = data;
+            }
+        }
+        if (change.type === "removed") {
+            const index = allCards.findIndex(c => c.id === change.doc.id);
+            if (index !== -1) {
+                if (allCards[index].node.parentNode) allCards[index].node.remove();
+                allCards.splice(index, 1);
+            }
+        }
     });
     
     updateFilterOptions();
     renderGallery();
 });
 
-// === ОБНОВЛЕНИЕ ФИЛЬТРОВ И АВТОЗАПОЛНЕНИЯ (DATALISTS) ===
+// === ОБНОВЛЕНИЕ ФИЛЬТРОВ И АВТОЗАПОЛНЕНИЯ ===
 function updateFilterOptions() {
-    const countries = new Set();
-    const regions = new Set();
-    const cities = new Set();
-
+    const countries = new Set(); const regions = new Set(); const cities = new Set();
     allCards.forEach(card => {
         if(card.country) countries.add(card.country);
         if(card.region) regions.add(card.region);
         if(card.city) cities.add(card.city);
     });
 
-    // Обновляем фильтры в верхней панели
     populateSelect(filterCountry, countries, "Все страны");
     populateSelect(filterRegion, regions, "Все регионы");
     populateSelect(filterCity, cities, "Все города");
 
-    // Обновляем списки автозаполнения (Datalists) для форм ввода
     populateDatalist('countriesList', countries);
     populateDatalist('regionsList', regions);
     populateDatalist('citiesList', cities);
@@ -160,11 +194,9 @@ function updateFilterOptions() {
 function populateSelect(selectElement, itemsSet, defaultText) {
     const currentValue = selectElement.value;
     selectElement.innerHTML = `<option value="all">${defaultText}</option>`;
-    
     [...itemsSet].sort().forEach(item => {
         const option = document.createElement('option');
-        option.value = item;
-        option.textContent = item;
+        option.value = item; option.textContent = item;
         selectElement.appendChild(option);
     });
     if ([...itemsSet].includes(currentValue)) selectElement.value = currentValue;
@@ -175,14 +207,11 @@ function populateDatalist(datalistId, itemsSet) {
     if (!datalist) return;
     datalist.innerHTML = '';
     [...itemsSet].sort().forEach(item => {
-        const option = document.createElement('option');
-        option.value = item;
-        datalist.appendChild(option);
+        const option = document.createElement('option'); option.value = item; datalist.appendChild(option);
     });
 }
 
-
-// === ЛОГИКА ФИЛЬТРАЦИИ И СОРТИРОВКИ ===
+// === МГНОВЕННАЯ ФИЛЬТРАЦИЯ (Без перерисовки DOM!) ===
 function renderGallery() {
     let filtered = [...allCards];
     const queryText = searchInput.value.toLowerCase();
@@ -209,9 +238,10 @@ function renderGallery() {
         return 0;
     });
 
-    galleryGrid.innerHTML = '';
+    // Вместо удаления innerHTML мы просто переставляем существующие узлы DOM
+    galleryGrid.innerHTML = ''; 
     filtered.forEach(data => {
-        galleryGrid.appendChild(createCardReadView(data));
+        galleryGrid.appendChild(data.node); // Картинки не будут мигать и грузиться заново!
     });
 }
 
@@ -222,20 +252,11 @@ filterCountry.addEventListener('change', renderGallery);
 filterRegion.addEventListener('change', renderGallery);
 filterCity.addEventListener('change', renderGallery);
 
-function formatDateStr(dateStr) {
-    if (!dateStr) return "Дата не указана";
-    const parts = dateStr.split('-');
-    if(parts.length === 3) return `${parts[2]}.${parts[1]}.${parts[0]}`;
-    return dateStr;
-}
-
 // === СОЗДАНИЕ КАРТОЧКИ (ЧТЕНИЕ) ===
 function createCardReadView(data) {
     const card = document.createElement('div');
     card.className = 'card';
-    
     const imgHtml = data.imageUrl ? `<img src="${data.imageUrl}" loading="lazy">` : ``;
-
     const locArr = [data.country, data.region, data.city].filter(Boolean);
     const locText = locArr.length > 0 ? locArr.join(', ') : "Локация не указана";
 
@@ -244,7 +265,7 @@ function createCardReadView(data) {
         <div class="card-content">
             <div class="card-title">${data.name || "Без названия"}</div>
             <div class="card-location">
-                🗓 ${formatDateStr(data.date)}<br>
+                🗓 ${formatToDisplayFormat(data.date) || "Дата не указана"}<br>
                 📍 ${locText}
             </div>
             <ul class="status-list">
@@ -266,13 +287,23 @@ function createCardEditView(data) {
     card.className = 'card';
     card.style.border = "1px solid var(--btn-primary)";
 
+    // Генерируем уникальные ID для полей даты конкретно этой карточки
+    const txtId = `editDateTxt_${data.id}`;
+    const natId = `editDateNat_${data.id}`;
+
     card.innerHTML = `
         <div class="card-content" style="padding-top: 10px;">
             <label>Название:</label>
             <input type="text" class="edit-name" value="${data.name || ''}">
 
             <label>Дата:</label>
-            <input type="date" class="edit-date" value="${data.date || ''}">
+            <div class="date-input-group" style="margin-bottom:15px;">
+                <input type="text" id="${txtId}" class="edit-date-text" value="${formatToDisplayFormat(data.date)}" placeholder="ДД.ММ.ГГГГ">
+                <div class="calendar-btn">
+                    📅
+                    <input type="date" id="${natId}">
+                </div>
+            </div>
 
             <div class="form-row">
                 <div><label>Страна:</label><input type="text" class="edit-country" list="countriesList" value="${data.country || ''}"></div>
@@ -290,9 +321,20 @@ function createCardEditView(data) {
             </div>
 
             <button class="btn-submit btn-save">Сохранить</button>
-            <button class="btn-delete-small">🗑 Удалить открытку</button>
+            <button class="btn-cancel">Отмена</button>
+            <button class="btn-delete-small">🗑 Удалить</button>
         </div>
     `;
+
+    // Активируем логику дат для режима редактирования
+    setTimeout(() => {
+        setupDateInputs(document.getElementById(txtId), document.getElementById(natId));
+    }, 0);
+
+    // Кнопка ОТМЕНА
+    card.querySelector('.btn-cancel').onclick = () => {
+        card.replaceWith(data.node); // Возвращаем оригинальную сохраненную ноду
+    };
 
     card.querySelector('.btn-save').onclick = async () => {
         const btnSave = card.querySelector('.btn-save');
@@ -305,22 +347,17 @@ function createCardEditView(data) {
             let newImagePath = data.imagePath;
 
             if (newFile) {
-                // Обрезаем новую картинку перед загрузкой
                 const croppedBlob = await cropImage(newFile);
-
                 newImagePath = 'postcards/' + Date.now() + '_' + newFile.name;
                 const fileRef = ref(storage, newImagePath);
                 await uploadBytes(fileRef, croppedBlob);
                 newImageUrl = await getDownloadURL(fileRef);
-
-                if (data.imagePath) {
-                    await deleteObject(ref(storage, data.imagePath)).catch(e => console.log("Старое фото не удалено:", e));
-                }
+                if (data.imagePath) await deleteObject(ref(storage, data.imagePath)).catch(e => console.log("Старое фото не удалено"));
             }
 
             const updatedData = {
                 name: card.querySelector('.edit-name').value.trim(),
-                date: card.querySelector('.edit-date').value,
+                date: parseToDbFormat(document.getElementById(txtId).value.trim()), // В БД уходит ГГГГ-ММ-ДД
                 country: card.querySelector('.edit-country').value.trim(),
                 region: card.querySelector('.edit-region').value.trim(),
                 city: card.querySelector('.edit-city').value.trim(),
@@ -333,10 +370,8 @@ function createCardEditView(data) {
 
             await updateDoc(doc(db, "postcards", data.id), updatedData);
         } catch (error) {
-            console.error("Ошибка обновления:", error);
-            alert("Не удалось сохранить изменения.");
-            btnSave.textContent = "Сохранить";
-            btnSave.disabled = false;
+            console.error("Ошибка:", error); alert("Не удалось сохранить.");
+            btnSave.textContent = "Сохранить"; btnSave.disabled = false;
         }
     };
 
@@ -345,9 +380,7 @@ function createCardEditView(data) {
             try {
                 await deleteDoc(doc(db, "postcards", data.id));
                 if (data.imagePath) await deleteObject(ref(storage, data.imagePath));
-            } catch (error) {
-                console.error("Ошибка удаления:", error);
-            }
+            } catch (error) { console.error("Ошибка удаления:", error); }
         }
     };
 
