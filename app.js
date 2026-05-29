@@ -159,7 +159,7 @@ onSnapshot(qDisplay, (snapshot) => {
                 <ul class="status-list">
                     <li>Альбом: <span class="${data.album ? 'status-yes' : 'status-no'}">${data.album ? '✅ Есть' : '❌ Нет'}</span></li>
                     <li>Tupra: <span class="${data.friend1 ? 'status-yes' : 'status-no'}">${data.friend1 ? '✅ Отправлено' : '❌ Ждет'}</span></li>
-                    <li>zxcCUMKILLER228Pro: <span class="${data.friend2 ? 'status-yes' : 'status-no'}">${data.friend2 ? '✅ Отправлено' : '❌ Ждет'}</span></li>
+                    <li>CUMKILLER: <span class="${data.friend2 ? 'status-yes' : 'status-no'}">${data.friend2 ? '✅ Отправлено' : '❌ Ждет'}</span></li>
                 </ul>
                 <div class="${statusClass}" style="${!requiresAction ? 'background:#e8f5e9; color:#2e7d32;' : ''}">${statusText}</div>
             </div>
