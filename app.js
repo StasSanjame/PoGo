@@ -1,6 +1,8 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getFirestore, collection, addDoc, onSnapshot, query, updateDoc, doc, deleteDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
+// === ИМПОРТ АВТОРИЗАЦИИ ===
+import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
 // ==========================================
 const firebaseConfig = {
@@ -16,6 +18,10 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const storage = getStorage(app);
+
+// Инициализация авторизации
+const auth = getAuth(app);
+const provider = new GoogleAuthProvider();
 
 const galleryGrid = document.getElementById('galleryGrid');
 const searchInput = document.getElementById('searchInput');
@@ -43,10 +49,36 @@ const btnCloseFilters = document.getElementById('btnCloseFilters');
 const btnApplyFilters = document.getElementById('btnApplyFilters');
 const btnScrollTop = document.getElementById('btnScrollTop');
 
-let allCards = [];
-let currentDirection = 'from_me'; // Режим просмотра по умолчанию: "Я"
+// Кнопки авторизации
+const btnLogin = document.getElementById('btnLogin');
+const btnLogout = document.getElementById('btnLogout');
 
-// === КЛАССИФИКАЦИЯ СКЛАНЯЕМЫХ СЛОВ ===
+let allCards = [];
+let currentDirection = 'from_me';
+
+// === ЛОГИКА АВТОРИЗАЦИИ GOOGLE ===
+onAuthStateChanged(auth, (user) => {
+    if (user) {
+        document.body.classList.add('is-admin');
+    } else {
+        document.body.classList.remove('is-admin');
+    }
+});
+
+btnLogin.addEventListener('click', () => {
+    signInWithPopup(auth, provider)
+        .then((result) => {
+            console.log("Успешный вход! Скопируй этот UID в правила Firebase:");
+            console.log(result.user.uid);
+            alert("Вход выполнен! Если это первый вход, проверь консоль браузера (F12) или вкладку Users в Firebase, чтобы скопировать свой UID для правил безопасности.");
+        })
+        .catch((error) => console.error("Ошибка авторизации:", error));
+});
+
+btnLogout.addEventListener('click', () => {
+    signOut(auth).then(() => alert("Вы вышли из режима редактирования."));
+});
+
 function getPostcardWord(count) {
     const mod10 = count % 10;
     const mod100 = count % 100;
@@ -56,7 +88,6 @@ function getPostcardWord(count) {
     return "открыток";
 }
 
-// === УПРАВЛЕНИЕ КАСТОМНЫМИ ВЫПАДАЮЩИМИ СПИСКАМИ (COMBOBOX) ===
 function bindCombobox(containerEl, getItemsList) {
     const input = containerEl.querySelector('input');
     const arrow = containerEl.querySelector('.combobox-arrow');
@@ -105,18 +136,15 @@ function bindCombobox(containerEl, getItemsList) {
     });
 }
 
-// Инициализация списков главного окна добавления
 bindCombobox(document.getElementById('comboCountryAdd'), () => [...new Set(allCards.map(c => c.country).filter(Boolean))].sort());
 bindCombobox(document.getElementById('comboCityAdd'), () => [...new Set(allCards.map(c => c.city).filter(Boolean))].sort());
 bindCombobox(document.getElementById('comboRegionAdd'), () => [...new Set(allCards.map(c => c.region).filter(Boolean))].sort());
 
-// Скрытие списка получателей в модалке добавления, если выбрано "Мне"
 stopDirection.addEventListener('change', () => {
     if (stopDirection.value === 'to_me') addRecipientsGroup.classList.add('hidden');
     else addRecipientsGroup.classList.remove('hidden');
 });
 
-// === ОБРЕЗКА СКРИНШОТА ===
 async function cropImage(file) {
     return new Promise((resolve, reject) => {
         const img = new Image();
@@ -138,7 +166,6 @@ async function cropImage(file) {
     });
 }
 
-// === ВАЛИДАЦИЯ И ПРЕОБРАЗОВАНИЕ ДАТ ===
 function validateAndParseDate(str) {
     if (!str) return ""; 
     if (!/^\d{8}$/.test(str)) {
@@ -172,10 +199,9 @@ function formatToDisplay(dbStr) {
     return dbStr;
 }
 
-// === СИНХРОНИЗАЦИЯ ПОЛЕЙ ДАТЫ ===
 function setupDateInputs(textInput, nativeInput, calendarBtn) {
     calendarBtn.addEventListener('click', (e) => {
-        if (window.innerWidth > 768) { // На ПК вызываем календарь скриптом
+        if (window.innerWidth > 768) {
             e.preventDefault();
             try { nativeInput.showPicker(); } catch (err) {}
         }
@@ -191,13 +217,11 @@ function setupDateInputs(textInput, nativeInput, calendarBtn) {
 
 setupDateInputs(document.getElementById('stopDateText'), document.getElementById('stopDateNative'), document.getElementById('btnDateNative'));
 
-// === СИНХРОНИЗАЦИЯ ТУМБЛЕРОВ НАПРАВЛЕНИЯ (Я/МНЕ) ===
 function handleDirectionChange(val) {
     currentDirection = val;
     directionSelectPC.value = val;
     directionSelectMobile.value = val;
     
-    // Если переключились на "Мне", прячем статус-фильтр (у получателей нет статусов выполнения)
     if (currentDirection === 'to_me') filterStatus.classList.add('hidden');
     else filterStatus.classList.remove('hidden');
 
@@ -206,7 +230,6 @@ function handleDirectionChange(val) {
 directionSelectPC.addEventListener('change', (e) => handleDirectionChange(e.target.value));
 directionSelectMobile.addEventListener('change', (e) => handleDirectionChange(e.target.value));
 
-// === ФУНКЦИЯ СБРОСА ФИЛЬТРОВ ===
 function resetAllFilters() {
     searchInput.value = '';
     sortSelect.value = 'dateDesc';
@@ -215,11 +238,10 @@ function resetAllFilters() {
     filterRegion.value = 'all';
     filterCity.value = 'all';
     
-    // Сброс направления
     currentDirection = 'from_me';
     directionSelectPC.value = 'from_me';
     directionSelectMobile.value = 'from_me';
-    filterStatus.classList.remove('hidden'); // Возвращаем фильтр статусов
+    filterStatus.classList.remove('hidden'); 
     
     renderGallery();
 }
@@ -229,19 +251,16 @@ document.getElementById('btnResetMobile').addEventListener('click', () => {
     controlsRight.classList.remove('open');
 });
 
-// === УПРАВЛЕНИЕ МОБИЛЬНЫМИ ФИЛЬТРАМИ ===
 btnOpenFilters.addEventListener('click', () => controlsRight.classList.add('open'));
 btnCloseFilters.addEventListener('click', () => controlsRight.classList.remove('open'));
 btnApplyFilters.addEventListener('click', () => controlsRight.classList.remove('open'));
 
-// === КНОПКА НАВЕРХ ===
 window.addEventListener('scroll', () => {
     if (window.scrollY > 400) btnScrollTop.classList.remove('hidden');
     else btnScrollTop.classList.add('hidden');
 });
 btnScrollTop.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
 
-// === СОХРАНЕНИЕ НОВОЙ ОТКРЫТКИ ===
 btnOpenAddModal.addEventListener('click', () => {
     uploadForm.reset();
     addRecipientsGroup.classList.remove('hidden');
@@ -296,7 +315,6 @@ uploadForm.addEventListener('submit', async (e) => {
     }
 });
 
-// === СЛУШАТЕЛЬ БД ===
 onSnapshot(query(collection(db, "postcards")), (snapshot) => {
     snapshot.docChanges().forEach((change) => {
         if (change.type === "added") {
@@ -343,13 +361,10 @@ function populateSelect(sel, items, defText) {
     if ([...items].includes(cur)) sel.value = cur;
 }
 
-// === РЕНДЕРИНГ ГАЛЕРЕИ И СЧЕТЧИКА ===
 function renderGallery() {
-    // 1. Фильтруем массив по выбранной вкладке ("Я" или "Мне")
     let categorized = allCards.filter(c => (c.direction || "from_me") === currentDirection);
     const totalInCurrentCategory = categorized.length;
 
-    // 2. Применяем поисковые фильтры к этой категории
     let filtered = [...categorized];
     const queryText = searchInput.value.toLowerCase();
     if (queryText) filtered = filtered.filter(c => (c.name || "").toLowerCase().includes(queryText));
@@ -364,7 +379,6 @@ function renderGallery() {
     if (filterRegion.value !== 'all') filtered = filtered.filter(c => c.region === filterRegion.value);
     if (filterCity.value !== 'all') filtered = filtered.filter(c => c.city === filterCity.value);
 
-    // 3. Вывод счетчика (Только для "Я" и только если количество уменьшилось из-за поисковых фильтров)
     if (currentDirection === 'from_me' && filtered.length < totalInCurrentCategory) {
         filterCounter.textContent = `${filtered.length} ${getPostcardWord(filtered.length)}`;
         filterCounter.classList.remove('hidden');
@@ -372,7 +386,6 @@ function renderGallery() {
         filterCounter.classList.add('hidden');
     }
 
-    // 4. Сортировка
     const sortVal = sortSelect.value;
     filtered.sort((a, b) => {
         if (sortVal === 'dateDesc') return (b.date || "").localeCompare(a.date || "") || (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0);
@@ -396,7 +409,6 @@ filterCountry.addEventListener('change', renderGallery);
 filterRegion.addEventListener('change', renderGallery);
 filterCity.addEventListener('change', renderGallery);
 
-// === ПРОСМОТР КАРТОЧКИ ===
 function createCardReadView(data) {
     const card = document.createElement('div'); card.className = 'card';
     const imgHtml = data.imageUrl ? `<img src="${data.imageUrl}" loading="lazy">` : ``;
@@ -413,7 +425,7 @@ function createCardReadView(data) {
     `;
 
     card.innerHTML = `
-        <button class="btn-card-edit-pencil" title="Редактировать">✏️</button>
+        <button class="btn-card-edit-pencil admin-only" title="Редактировать">✏️</button>
         <div class="card-img-wrapper">${imgHtml}</div>
         <div class="card-content">
             <div class="card-title">${data.name || "Без названия"}</div>
@@ -427,14 +439,12 @@ function createCardReadView(data) {
     return card;
 }
 
-// === РЕДАКТИРОВАНИЕ КАРТОЧКИ ===
 function createCardEditView(data) {
     const card = document.createElement('div'); card.className = 'card';
     card.style.border = "1px solid var(--btn-primary)";
     
     const txtId = `editTxt_${data.id}`; const natId = `editNat_${data.id}`; const btnId = `btnEditDate_${data.id}`;
     const dirId = `editDir_${data.id}`; const recGroupId = `editRecGroup_${data.id}`;
-
     const isToMe = data.direction === 'to_me';
 
     card.innerHTML = `
@@ -496,7 +506,6 @@ function createCardEditView(data) {
         </div>
     `;
 
-    // Инициализация календаря и комбобоксов внутри карточки
     setTimeout(() => { 
         setupDateInputs(document.getElementById(txtId), document.getElementById(natId), document.getElementById(btnId)); 
         
