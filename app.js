@@ -102,16 +102,8 @@ function formatToDisplay(dbStr) {
     return dbStr;
 }
 
-// === СИНХРОНИЗАЦИЯ ПОЛЕЙ ДАТЫ И ФИКС КАЛЕНДАРЯ НА ПК ===
+// === СИНХРОНИЗАЦИЯ ПОЛЕЙ ДАТЫ ===
 function setupDateInputs(textInput, nativeInput, container) {
-    // Нажатие на иконку календаря теперь принудительно вызывает окно на ПК
-    const calendarBtn = container.querySelector('.calendar-btn');
-    calendarBtn.addEventListener('click', (e) => {
-        if (e.target !== nativeInput) {
-            try { nativeInput.showPicker(); } catch (err) { nativeInput.click(); }
-        }
-    });
-
     // Изменение даты через календарь заносит данные в текстовое поле в формате ДДММГГГГ
     nativeInput.addEventListener('change', (e) => {
         if (e.target.value) {
@@ -119,14 +111,19 @@ function setupDateInputs(textInput, nativeInput, container) {
             textInput.value = `${parts[2]}${parts[1]}${parts[0]}`;
         }
     });
+    // Скриптовый вызов click()/showPicker() убран, так как CSS z-index теперь 
+    // позволяет кликать напрямую по скрытому инпуту календаря.
 }
 
 // Настройка для главного окна добавления
 setupDateInputs(document.getElementById('stopDateText'), document.getElementById('stopDateNative'), document.getElementById('addModal'));
 
 // === УПРАВЛЕНИЕ МОБИЛЬНЫМИ ФИЛЬТРАМИ ===
+const btnCloseFilters = document.getElementById('btnCloseFilters');
 btnOpenFilters.addEventListener('click', () => controlsRight.classList.add('open'));
 btnApplyFilters.addEventListener('click', () => controlsRight.classList.remove('open'));
+// Закрытие меню фильтров крестиком (без применения, хотя по факту они применяются на лету)
+btnCloseFilters.addEventListener('click', () => controlsRight.classList.remove('open'));
 
 // === КНОПКА НАВЕРХ ===
 window.addEventListener('scroll', () => {
