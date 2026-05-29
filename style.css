@@ -66,7 +66,7 @@ button { cursor: pointer; border: none; border-radius: 6px; font-weight: 600; tr
 /* КНОПКА РЕДАКТИРОВАНИЯ В УГЛУ КАРТОЧКИ */
 .btn-card-edit-pencil {
     position: absolute; top: 10px; left: 10px; z-index: 10;
-    background: rgba(16, 22, 47, 0.75); border: 1px solid var(--border-color);
+    background: rgba(16, 22, 47, 0.4); border: 1px solid var(--border-color);
     color: white; width: 34px; height: 34px; border-radius: 50%;
     display: flex; justify-content: center; align-items: center;
     font-size: 0.95rem; cursor: pointer; transition: 0.2s; box-shadow: 0 2px 6px rgba(0,0,0,0.4);
