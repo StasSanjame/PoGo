@@ -43,7 +43,6 @@ select, .select-direction {
 }
 select:focus, .select-direction:focus { border-color: var(--btn-primary); }
 
-/* Кнопки и выравнивание текста */
 button { cursor: pointer; border: none; border-radius: 6px; font-weight: 600; transition: 0.2s; }
 .btn-primary { background-color: var(--btn-primary); color: white; padding: 10px 20px; white-space: nowrap; }
 .btn-primary:hover { background-color: var(--btn-primary-hover); }
@@ -58,12 +57,20 @@ button { cursor: pointer; border: none; border-radius: 6px; font-weight: 600; tr
 .btn-reset-clear { background-color: transparent; color: var(--text-muted); border: 1px solid var(--border-color); padding: 10px 15px; font-weight: 600; border-radius: 6px; }
 .btn-reset-clear:hover { background-color: rgba(255, 255, 255, 0.1); color: white; }
 
+/* Кнопка выхода из админки */
+.btn-logout { background-color: transparent; padding: 8px; font-size: 1.2rem; border-radius: 50%; display: flex; justify-content: center; align-items: center; }
+.btn-logout:hover { background-color: rgba(255, 255, 255, 0.1); }
+
+/* --- ЛОГИКА АВТОРИЗАЦИИ (Скрытие элементов) --- */
+.admin-only { display: none !important; }
+body.is-admin .admin-only { display: flex !important; }
+body.is-admin .guest-only { display: none !important; }
+
 /* Отображение элементов ПК/Мобильный */
 .pc-only-inline { display: inline-block; }
 .mobile-only { display: none !important; }
 .mobile-text { display: none; }
 
-/* КНОПКА РЕДАКТИРОВАНИЯ В УГЛУ КАРТОЧКИ (Сделана прозрачной) */
 .btn-card-edit-pencil {
     position: absolute; top: 10px; left: 10px; z-index: 10;
     background: transparent; border: 1px solid transparent;
@@ -71,17 +78,10 @@ button { cursor: pointer; border: none; border-radius: 6px; font-weight: 600; tr
     display: flex; justify-content: center; align-items: center;
     font-size: 0.95rem; cursor: pointer; transition: 0.2s; box-shadow: none;
 }
-.btn-card-edit-pencil:hover { 
-    background: var(--btn-primary); 
-    border-color: var(--btn-primary); 
-    transform: scale(1.05); 
-    box-shadow: 0 2px 6px rgba(0,0,0,0.4); 
-}
+.btn-card-edit-pencil:hover { background: var(--btn-primary); border-color: var(--btn-primary); transform: scale(1.05); box-shadow: 0 2px 6px rgba(0,0,0,0.4); }
 
-/* Счетчик фильтрации */
 .filter-counter { font-size: 0.95rem; color: var(--text-muted); margin-bottom: 15px; font-weight: 600; padding-left: 5px; }
 
-/* Кнопка скролла вверх */
 .btn-scroll-top {
     position: fixed; bottom: 25px; right: 25px; background: transparent; border: none; z-index: 99;
     width: 40px; height: 40px; cursor: pointer; transition: 0.2s; display: flex; justify-content: center; align-items: center;
@@ -94,7 +94,6 @@ button { cursor: pointer; border: none; border-radius: 6px; font-weight: 600; tr
 }
 .btn-scroll-top:hover::after { border-color: white; }
 
-/* КАСТОМНЫЕ КОМБОБОКСЫ */
 .custom-combobox { position: relative; width: 100%; display: block; box-sizing: border-box; }
 .custom-combobox input { width: 100%; padding-right: 30px !important; box-sizing: border-box; }
 .combobox-arrow {
@@ -109,26 +108,25 @@ button { cursor: pointer; border: none; border-radius: 6px; font-weight: 600; tr
 .combobox-item { padding: 9px 12px; cursor: pointer; color: var(--text-main); font-size: 0.9rem; text-align: left; }
 .combobox-item:hover { background-color: var(--btn-primary); color: white; }
 
-/* ДВОЙНАЯ СТРУКТУРА КАЛЕНДАРЯ */
 .calendar-wrapper { position: relative; display: inline-block; width: 45px; height: 36px; flex-shrink: 0; }
 .native-date-input { position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; z-index: -1; pointer-events: none; margin: 0; padding: 0; }
 
-/* Адаптивность для мобильных телефонов */
 @media (max-width: 768px) {
     .pc-only-inline { display: none !important; }
     .mobile-only { display: flex !important; }
     .mobile-text { display: inline !important; }
     .pc-text { display: none !important; }
+    
+    body.is-admin #btnOpenAddModal.admin-only { display: flex !important; }
 
-    /* На смартфонах нативный инпут календаря перекрывает кнопку для вызова родного пикера */
     .native-date-input { z-index: 5; pointer-events: auto; cursor: pointer; }
 
     .top-bar { padding: 10px; gap: 10px; }
-    #btnOpenAddModal { width: 40px; height: 40px; padding: 0; display: flex; justify-content: center; align-items: center; }
+    #btnOpenAddModal, #btnLogin { padding: 10px 15px; }
     
     .btn-filter-trigger {
         background: var(--bg-main); border: 1px solid var(--border-color); color: white;
-        width: 40px; height: 40px; display: flex; justify-content: center; align-items: center; font-size: 1.2rem;
+        width: 40px; height: 40px; display: flex; justify-content: center; align-items: center; font-size: 1.2rem; flex-shrink: 0;
     }
 
     .controls-right {
@@ -171,7 +169,6 @@ input[type="text"]:focus { border-color: var(--btn-primary); }
 .checkbox-group { display: flex; flex-direction: column; gap: 8px; margin-top: 15px; text-align: left; }
 .checkbox-group label { margin: 0; font-size: 0.95rem; color: var(--text-main); display: flex; align-items: center; gap: 8px;}
 
-/* Модальные окна */
 .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.7); display: flex; justify-content: center; align-items: center; z-index: 1000; padding: 20px; }
 .modal-overlay.hidden { display: none; }
 .modal-content { background: var(--bg-card); padding: 25px; border-radius: 12px; width: 100%; max-width: 500px; max-height: 90vh; overflow-y: auto; border: 1px solid var(--border-color); }
