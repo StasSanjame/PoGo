@@ -24,8 +24,6 @@
                 <span class="mobile-text">+</span>
             </button>
             
-            <button id="btnLogout" class="btn-logout admin-only" title="Выйти из режима редактирования">🚪</button>
-            
             <div class="search-container">
                 <input type="text" id="searchInput" placeholder="Поиск" autocomplete="off">
             </div>
@@ -34,7 +32,6 @@
                 <option value="from_me">Я</option>
                 <option value="to_me">Мне</option>
             </select>
-            <button id="btnResetPC" class="pc-only-inline btn-reset-clear">Сбросить</button>
         </div>
         
         <button id="btnOpenFilters" class="mobile-only btn-filter-trigger">↕️</button>
@@ -65,6 +62,10 @@
             <select id="filterRegion"><option value="all">Все регионы</option></select>
             <select id="filterCity"><option value="all">Все города</option></select>
             
+            <button id="btnResetPC" class="pc-only-inline btn-reset-clear">Сбросить</button>
+            
+            <button id="btnLogoutPC" class="btn-logout pc-only-inline admin-only btn-logout-trigger" title="Выйти из режима редактирования">🚪</button>
+            
             <div class="mobile-only mobile-direction-block">
                 <label>Тип открыток:</label>
                 <select id="directionSelectMobile" class="select-direction">
@@ -73,6 +74,8 @@
                 </select>
                 <button id="btnApplyFilters" class="btn-submit" style="margin-top:15px;">Применить</button>
                 <button id="btnResetMobile" class="btn-cancel" style="margin-top:10px;">Сбросить</button>
+                
+                <button id="btnLogoutMobile" class="btn-logout-mobile admin-only btn-logout-trigger">Выйти из аккаунта</button>
             </div>
         </div>
     </div>
