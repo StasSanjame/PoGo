@@ -14,46 +14,40 @@ body {
     background-color: var(--bg-main); color: var(--text-main);
 }
 
-/* Верхняя панель ПК — растянутый поиск */
 .top-bar {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 15px;
-    padding: 15px 20px;
-    background-color: var(--bg-card);
+    display: flex; justify-content: space-between; align-items: center; gap: 15px;
+    padding: 15px 20px; background-color: var(--bg-card);
     border-bottom: 1px solid var(--border-color);
     position: sticky; top: 0; z-index: 100;
 }
 
-.top-bar-main {
-    display: flex; gap: 15px; flex-grow: 1; align-items: center;
-}
-
+.top-bar-main { display: flex; gap: 15px; flex-grow: 1; align-items: center; }
 .search-container { flex-grow: 1; display: flex; }
 #searchInput {
-    width: 100%; padding: 10px 15px;
-    background: var(--bg-main); border: 1px solid var(--border-color);
+    width: 100%; padding: 10px 15px; background: var(--bg-main); border: 1px solid var(--border-color);
     color: var(--text-main); border-radius: 6px; outline: none;
 }
 #searchInput:focus { border-color: var(--btn-primary); }
 
 .controls-right { display: flex; flex-wrap: wrap; gap: 10px; flex-shrink: 0; }
 
-/* Унификация выпадающих списков */
+/* КАСТОМНЫЕ СЕЛЕКТЫ с идеальными отступами */
 select {
-    padding: 10px 30px 10px 15px;
-    background: var(--bg-main); color: var(--text-main);
+    appearance: none; -webkit-appearance: none; /* Убираем системную стрелочку */
+    width: auto; /* Поле облегает текст */
+    padding: 10px 32px 10px 15px; /* Справа ровно столько места, чтобы поместилась наша иконка */
+    background-color: var(--bg-main); color: var(--text-main);
     border: 1px solid var(--border-color); border-radius: 6px;
     outline: none; cursor: pointer; box-sizing: border-box;
-    min-width: 150px;
+    /* Рисуем свою аккуратную галочку */
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23f3f4f6' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 10px center; background-size: 14px;
 }
 select:focus { border-color: var(--btn-primary); }
 
 .mobile-only { display: none !important; }
 .mobile-text { display: none; }
 
-/* Кнопки */
 button { cursor: pointer; border: none; border-radius: 6px; font-weight: 600; transition: 0.2s; }
 .btn-primary { background-color: var(--btn-primary); color: white; padding: 10px 20px; }
 .btn-primary:hover { background-color: var(--btn-primary-hover); }
@@ -64,18 +58,27 @@ button { cursor: pointer; border: none; border-radius: 6px; font-weight: 600; tr
 .btn-cancel:hover { background-color: rgba(255, 255, 255, 0.1); color: white; }
 .btn-delete-small { background-color: transparent; color: #ef4444; padding: 8px; border: 1px solid #ef4444; margin-top: 10px; width: 100%; }
 
-/* Минималистичная кнопка ВВЕРХ */
+/* ЧЕТКАЯ CSS-СТРЕЛОЧКА ВВЕРХ */
 .btn-scroll-top {
     position: fixed; bottom: 25px; right: 25px;
-    background: none; border: none; color: var(--text-muted);
-    font-size: 28px; cursor: pointer; z-index: 99;
-    padding: 5px; transition: 0.2s; line-height: 1;
+    background: transparent; border: none; z-index: 99;
+    width: 40px; height: 40px; cursor: pointer; transition: 0.2s;
+    display: flex; justify-content: center; align-items: center;
 }
-.btn-scroll-top:hover { color: white; transform: translateY(-4px); }
+.btn-scroll-top:hover { transform: translateY(-4px); }
+.btn-scroll-top::after {
+    content: ''; display: block;
+    width: 14px; height: 14px;
+    border-top: 3px solid var(--text-muted);
+    border-left: 3px solid var(--text-muted);
+    transform: rotate(45deg); margin-top: 6px;
+    transition: 0.2s;
+}
+.btn-scroll-top:hover::after { border-color: white; }
 
 /* Адаптивность для телефонов */
 @media (max-width: 768px) {
-    .mobile-only { display: block !important; }
+    .mobile-only { display: flex !important; }
     .mobile-text { display: inline !important; }
     .pc-text { display: none !important; }
 
@@ -87,19 +90,17 @@ button { cursor: pointer; border: none; border-radius: 6px; font-weight: 600; tr
         width: 40px; height: 40px; display: flex; justify-content: center; align-items: center; font-size: 1.2rem;
     }
 
-    /* Превращаем блок фильтров в модальное окно на мобилке */
     .controls-right {
         display: none; position: fixed;
         top: 0; left: 0; right: 0; bottom: 0;
         background: rgba(16, 22, 47, 0.98); z-index: 1001;
-        flex-direction: column; justify-content: center; align-items: center;
+        flex-direction: column; justify-content: flex-start; align-items: center;
         padding: 30px; gap: 15px;
     }
     .controls-right.open { display: flex; }
-    .controls-right select { width: 100%; max-width: 300px; }
+    .controls-right select { width: 100%; max-width: 100%; }
 }
 
-/* Галерея карточек */
 main { padding: 20px; }
 .gallery-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 20px; }
 .card { background-color: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; overflow: hidden; display: flex; flex-direction: column; }
@@ -111,7 +112,6 @@ main { padding: 20px; }
 .status-list { list-style: none; padding: 0; margin: 0; flex-grow: 1; }
 .status-list li { font-size: 0.95rem; margin-bottom: 5px; }
 
-/* Кастомное поле даты */
 .date-input-group { display: flex; gap: 10px; align-items: center; width: 100%; }
 .date-input-group input[type="text"] { flex-grow: 1; margin: 0; }
 .calendar-btn {
@@ -119,9 +119,9 @@ main { padding: 20px; }
     background-color: var(--bg-main); border: 1px solid var(--border-color);
     border-radius: 4px; display: flex; justify-content: center; align-items: center; font-size: 1.1rem; cursor: pointer;
 }
-.calendar-btn input[type="date"] { position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
+/* ФИКС КАЛЕНДАРЯ НА ПК: Инпут накрывает всю кнопку прозрачным слоем */
+.calendar-btn input[type="date"] { position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; z-index: 10; }
 
-/* Элементы форм общие */
 .form-row { display: flex; gap: 10px; margin-bottom: 15px; }
 .form-row > div { flex: 1; }
 label { display: block; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 5px; margin-top: 10px; }
@@ -131,11 +131,10 @@ input[type="text"], input[type="file"] {
 .checkbox-group { display: flex; flex-direction: column; gap: 8px; margin-top: 15px; }
 .checkbox-group label { margin: 0; font-size: 0.95rem; color: var(--text-main); display: flex; align-items: center; gap: 8px;}
 
-/* Стандартные модалки */
 .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.7); display: flex; justify-content: center; align-items: center; z-index: 1000; padding: 20px; }
 .modal-overlay.hidden { display: none; }
 .modal-content { background: var(--bg-card); padding: 25px; border-radius: 12px; width: 100%; max-width: 500px; max-height: 90vh; overflow-y: auto; border: 1px solid var(--border-color); }
-.modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+.modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; width: 100%; }
 .modal-header h2 { margin: 0; font-size: 1.2rem; }
-.btn-close { background: none; color: var(--text-muted); font-size: 1.5rem; border:none; cursor:pointer;}
+.btn-close { background: none; color: var(--text-muted); font-size: 1.8rem; border:none; cursor:pointer; padding: 0;}
 .hidden { display: none !important; }
