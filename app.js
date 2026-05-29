@@ -103,6 +103,28 @@ uploadForm.addEventListener('submit', async (e) => {
     }
 });
 
+// Элемент поиска (добавляем ссылку на наше новое поле)
+const searchInput = document.getElementById('searchInput');
+
+// Функция для живого поиска
+function filterCards() {
+    const queryText = searchInput.value.toLowerCase(); // Переводим текст поиска в нижний регистр
+    const cards = document.querySelectorAll('.card'); // Находим все карточки на странице
+
+    cards.forEach(card => {
+        const title = card.querySelector('.card-title').textContent.toLowerCase();
+        // Если в названии есть то, что мы ввели — показываем, если нет — скрываем
+        if (title.includes(queryText)) {
+            card.style.display = 'flex'; // Используем flex, т.к. у нас карточки с flexbox
+        } else {
+            card.style.display = 'none';
+        }
+    });
+}
+
+// Слушаем каждый ввод символа в поле поиска
+searchInput.addEventListener('input', filterCards);
+
 // Отображение галереи и удаление
 const qDisplay = query(collection(db, "postcards"), orderBy("createdAt", "desc"));
 
@@ -129,14 +151,15 @@ onSnapshot(qDisplay, (snapshot) => {
             
         const statusClass = requiresAction ? "need-copies" : "need-copies";
 
+        // ЗДЕСЬ ИЗМЕНЕНЫ НАЗВАНИЯ В HTML-РАЗМЕТКЕ КАРТОЧКИ:
         card.innerHTML = `
             <img src="${data.imageUrl}" alt="Скриншот открытки" loading="lazy">
             <div class="card-content">
                 <div class="card-title">${data.name}</div>
                 <ul class="status-list">
-                    <li>Мой альбом: <span class="${data.album ? 'status-yes' : 'status-no'}">${data.album ? '✅ Есть' : '❌ Нет'}</span></li>
-                    <li>Друг 1: <span class="${data.friend1 ? 'status-yes' : 'status-no'}">${data.friend1 ? '✅ Отправлено' : '❌ Ждет'}</span></li>
-                    <li>Друг 2: <span class="${data.friend2 ? 'status-yes' : 'status-no'}">${data.friend2 ? '✅ Отправлено' : '❌ Ждет'}</span></li>
+                    <li>Альбом: <span class="${data.album ? 'status-yes' : 'status-no'}">${data.album ? '✅ Есть' : '❌ Нет'}</span></li>
+                    <li>Tupra: <span class="${data.friend1 ? 'status-yes' : 'status-no'}">${data.friend1 ? '✅ Отправлено' : '❌ Ждет'}</span></li>
+                    <li>zxcCUMKILLER228Pro: <span class="${data.friend2 ? 'status-yes' : 'status-no'}">${data.friend2 ? '✅ Отправлено' : '❌ Ждет'}</span></li>
                 </ul>
                 <div class="${statusClass}" style="${!requiresAction ? 'background:#e8f5e9; color:#2e7d32;' : ''}">${statusText}</div>
             </div>
@@ -151,14 +174,11 @@ onSnapshot(qDisplay, (snapshot) => {
         deleteBtn.onclick = async () => {
             if (confirm(`Точно удалить открытку "${data.name}"?`)) {
                 try {
-                    // Удаляем документ из базы данных
                     await deleteDoc(doc(db, "postcards", docSnapshot.id));
                     
-                    // Удаляем саму картинку из хранилища (если у нас сохранен её путь)
                     if (data.imagePath) {
                         await deleteObject(ref(storage, data.imagePath));
                     } else if (data.imageUrl) {
-                        // Резервный вариант для старых открыток, где imagePath еще не сохранялся
                         await deleteObject(ref(storage, data.imageUrl));
                     }
                 } catch (error) {
@@ -168,8 +188,12 @@ onSnapshot(qDisplay, (snapshot) => {
             }
         };
 
-        // Добавляем кнопку в карточку и выводим карточку на экран
         card.querySelector('.card-content').appendChild(deleteBtn);
         galleryGrid.appendChild(card);
     });
+
+    // Запускаем фильтрацию сразу после отрисовки всех карточек.
+    // Это нужно, чтобы при добавлении новой открытки во время активного поиска, 
+    // она не ломала текущий фильтр.
+    filterCards();
 });
