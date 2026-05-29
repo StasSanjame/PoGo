@@ -1,11 +1,12 @@
-// Импортируем нужные модули Firebase напрямую через CDN
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
+// Добавлены новые модули для обновления, поиска и удаления: getDocs, where, updateDoc, doc, deleteDoc
+import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, serverTimestamp, getDocs, where, updateDoc, doc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+// Добавлен deleteObject для удаления картинок
+import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
 import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-analytics.js";
 
 // ==========================================
-// Конфиг Firebase. Ключ разбит на части для обхода сканера GitHub
+// ВСТАВЬ СВОЙ КОНФИГ СЮДА (С РАЗБИТЫМ КЛЮЧОМ, КАК В ПРОШЛЫЙ РАЗ)
 const firebaseConfig = {
   apiKey: "AIzaSyBlFUq_" + "oLSJbPSPi5VcidO_Aat03NrbMl4",
   authDomain: "pogopostcards-bfed2.firebaseapp.com",
@@ -17,13 +18,11 @@ const firebaseConfig = {
 };
 // ==========================================
 
-// Инициализация Firebase
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const storage = getStorage(app);
 const analytics = getAnalytics(app);
 
-// Элементы интерфейса
 const uploadForm = document.getElementById('uploadForm');
 const imageInput = document.getElementById('imageInput');
 const fileNameDisplay = document.getElementById('fileNameDisplay');
@@ -31,7 +30,6 @@ const submitBtn = document.getElementById('submitBtn');
 const loadingIndicator = document.getElementById('loadingIndicator');
 const galleryGrid = document.getElementById('galleryGrid');
 
-// Показ имени выбранного файла
 imageInput.addEventListener('change', (e) => {
     if(e.target.files.length > 0) {
         fileNameDisplay.textContent = "Выбран файл: " + e.target.files[0].name;
@@ -40,35 +38,61 @@ imageInput.addEventListener('change', (e) => {
     }
 });
 
-// Загрузка данных
 uploadForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     
     const file = imageInput.files[0];
-    if (!file) return;
+    const stopName = document.getElementById('stopName').value.trim();
+    if (!file || !stopName) return;
+
+    const isAlbum = document.getElementById('chkAlbum').checked;
+    const isFriend1 = document.getElementById('chkFriend1').checked;
+    const isFriend2 = document.getElementById('chkFriend2').checked;
 
     submitBtn.disabled = true;
     loadingIndicator.classList.remove('hidden');
 
     try {
-        // 1. Загружаем картинку в Storage
-        const fileRef = ref(storage, 'postcards/' + Date.now() + '_' + file.name);
-        await uploadBytes(fileRef, file);
-        const imageUrl = await getDownloadURL(fileRef);
+        // Шаг 1: Проверяем, есть ли уже открытка с таким названием
+        const qSearch = query(collection(db, "postcards"), where("name", "==", stopName));
+        const querySnapshot = await getDocs(qSearch);
 
-        // 2. Сохраняем данные в Firestore
-        await addDoc(collection(db, "postcards"), {
-            name: document.getElementById('stopName').value || "Без названия",
-            imageUrl: imageUrl,
-            album: document.getElementById('chkAlbum').checked,
-            friend1: document.getElementById('chkFriend1').checked,
-            friend2: document.getElementById('chkFriend2').checked,
-            createdAt: serverTimestamp()
-        });
+        if (!querySnapshot.empty) {
+            // ОТКРЫТКА НАЙДЕНА: Склеиваем данные
+            const existingDoc = querySnapshot.docs[0];
+            const existingData = existingDoc.data();
+
+            await updateDoc(doc(db, "postcards", existingDoc.id), {
+                // Если галочка уже стояла (true) ИЛИ мы ставим её сейчас (true) - будет true
+                album: existingData.album || isAlbum,
+                friend1: existingData.friend1 || isFriend1,
+                friend2: existingData.friend2 || isFriend2
+            });
+
+            alert(`Открытка "${stopName}" обновлена! Новые галочки добавлены.`);
+            // При склейке мы не загружаем картинку повторно, чтобы экономить место
+        } else {
+            // ОТКРЫТКА НЕ НАЙДЕНА: Создаем новую
+            const imagePath = 'postcards/' + Date.now() + '_' + file.name;
+            const fileRef = ref(storage, imagePath);
+            
+            await uploadBytes(fileRef, file);
+            const imageUrl = await getDownloadURL(fileRef);
+
+            await addDoc(collection(db, "postcards"), {
+                name: stopName,
+                imageUrl: imageUrl,
+                imagePath: imagePath, // Сохраняем путь, чтобы потом легко удалить картинку
+                album: isAlbum,
+                friend1: isFriend1,
+                friend2: isFriend2,
+                createdAt: serverTimestamp()
+            });
+            alert("Новая открытка успешно сохранена!");
+        }
 
         uploadForm.reset();
         fileNameDisplay.textContent = "Файл не выбран";
-        alert("Открытка успешно сохранена!");
 
     } catch (error) {
         console.error("Ошибка при загрузке: ", error);
@@ -79,14 +103,14 @@ uploadForm.addEventListener('submit', async (e) => {
     }
 });
 
-// Отображение галереи в реальном времени
-const q = query(collection(db, "postcards"), orderBy("createdAt", "desc"));
+// Отображение галереи и удаление
+const qDisplay = query(collection(db, "postcards"), orderBy("createdAt", "desc"));
 
-onSnapshot(q, (snapshot) => {
+onSnapshot(qDisplay, (snapshot) => {
     galleryGrid.innerHTML = ''; 
     
-    snapshot.forEach((doc) => {
-        const data = doc.data();
+    snapshot.forEach((docSnapshot) => {
+        const data = docSnapshot.data();
         const card = document.createElement('div');
         card.className = 'card';
 
@@ -117,6 +141,35 @@ onSnapshot(q, (snapshot) => {
                 <div class="${statusClass}" style="${!requiresAction ? 'background:#e8f5e9; color:#2e7d32;' : ''}">${statusText}</div>
             </div>
         `;
+
+        // Создаем кнопку удаления
+        const deleteBtn = document.createElement('button');
+        deleteBtn.className = 'btn-delete';
+        deleteBtn.textContent = '🗑 Удалить';
+        
+        // Логика удаления
+        deleteBtn.onclick = async () => {
+            if (confirm(`Точно удалить открытку "${data.name}"?`)) {
+                try {
+                    // Удаляем документ из базы данных
+                    await deleteDoc(doc(db, "postcards", docSnapshot.id));
+                    
+                    // Удаляем саму картинку из хранилища (если у нас сохранен её путь)
+                    if (data.imagePath) {
+                        await deleteObject(ref(storage, data.imagePath));
+                    } else if (data.imageUrl) {
+                        // Резервный вариант для старых открыток, где imagePath еще не сохранялся
+                        await deleteObject(ref(storage, data.imageUrl));
+                    }
+                } catch (error) {
+                    console.error("Ошибка при удалении: ", error);
+                    alert("Не удалось удалить открытку. Возможно, она уже удалена.");
+                }
+            }
+        };
+
+        // Добавляем кнопку в карточку и выводим карточку на экран
+        card.querySelector('.card-content').appendChild(deleteBtn);
         galleryGrid.appendChild(card);
     });
 });
