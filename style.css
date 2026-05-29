@@ -1,15 +1,12 @@
-/* Базовые стили (Codecademy Theme) */
+/* Новая цветовая схема */
 :root {
-    --bg-main: #0b1120;
-    --bg-card: #1f2937;
-    --bg-card-hover: #374151;
+    --bg-main: #10162f;
+    --bg-card: #1d2342;
     --text-main: #f3f4f6;
     --text-muted: #9ca3af;
-    --accent: #5eead4; /* Светло-бирюзовый */
-    --accent-hover: #14b8a6;
-    --border-color: #374151;
-    --btn-primary: #6366f1; /* Индиго */
-    --btn-primary-hover: #4f46e5;
+    --btn-primary: #155eef;
+    --btn-primary-hover: #1c64f2;
+    --border-color: #2a3152;
 }
 
 body {
@@ -20,23 +17,40 @@ body {
     color: var(--text-main);
 }
 
-/* Верхняя панель */
+/* Верхняя панель (Grid / Flexbox для расположения) */
 .top-bar {
     display: flex;
-    flex-wrap: wrap;
-    gap: 15px;
-    padding: 20px;
-    background-color: #111827;
-    border-bottom: 1px solid var(--border-color);
+    justify-content: space-between;
     align-items: center;
+    gap: 20px;
+    padding: 20px;
+    background-color: var(--bg-card);
+    border-bottom: 1px solid var(--border-color);
     position: sticky;
     top: 0;
     z-index: 100;
 }
 
-#searchInput {
+.top-bar-main {
+    display: flex;
+    gap: 15px;
     flex-grow: 1;
-    min-width: 200px;
+    align-items: center;
+}
+
+#btnOpenAddModal {
+    flex-shrink: 0;
+}
+
+.search-container {
+    flex-grow: 1;
+    display: flex;
+    justify-content: center;
+}
+
+#searchInput {
+    width: 100%;
+    max-width: 400px;
     padding: 10px 15px;
     background: var(--bg-main);
     border: 1px solid var(--border-color);
@@ -44,12 +58,13 @@ body {
     border-radius: 6px;
     outline: none;
 }
-#searchInput:focus { border-color: var(--accent); }
+#searchInput:focus { border-color: var(--btn-primary); }
 
 .controls-right {
     display: flex;
     flex-wrap: wrap;
     gap: 10px;
+    flex-shrink: 0;
 }
 
 select {
@@ -61,7 +76,26 @@ select {
     outline: none;
     cursor: pointer;
 }
-select:focus { border-color: var(--accent); }
+select:focus { border-color: var(--btn-primary); }
+
+/* Адаптивность для телефонов */
+@media (max-width: 1024px) {
+    .top-bar {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .top-bar-main {
+        width: 100%;
+    }
+    .search-container {
+        justify-content: flex-start;
+    }
+    #searchInput { max-width: none; }
+    .controls-right {
+        width: 100%;
+        justify-content: flex-start;
+    }
+}
 
 /* Кнопки */
 button {
@@ -80,23 +114,23 @@ button {
 
 .btn-submit {
     width: 100%;
-    background-color: var(--accent);
-    color: #000;
+    background-color: var(--btn-primary);
+    color: white;
     padding: 12px;
     margin-top: 15px;
     font-size: 1rem;
 }
-.btn-submit:hover { background-color: var(--accent-hover); }
+.btn-submit:hover { background-color: var(--btn-primary-hover); }
 
 .btn-edit {
     width: 100%;
     background-color: transparent;
-    color: var(--accent);
-    border: 1px solid var(--accent);
+    color: var(--btn-primary);
+    border: 1px solid var(--btn-primary);
     padding: 8px;
     margin-top: 15px;
 }
-.btn-edit:hover { background-color: rgba(94, 234, 212, 0.1); }
+.btn-edit:hover { background-color: rgba(21, 94, 239, 0.1); }
 
 .btn-delete-small {
     background-color: transparent;
@@ -125,10 +159,11 @@ main { padding: 20px; }
     flex-direction: column;
 }
 
+/* Строгое соотношение сторон для картинки (1170x1105) */
 .card-img-wrapper {
-    height: 160px;
+    aspect-ratio: 1170 / 1105;
     width: 100%;
-    background-color: #ffffff; /* Белый фон, если нет картинки */
+    background-color: transparent;
     display: flex;
     justify-content: center;
     align-items: center;
@@ -138,7 +173,7 @@ main { padding: 20px; }
 .card-img-wrapper img {
     width: 100%;
     height: 100%;
-    object-fit: contain;
+    object-fit: cover;
 }
 
 .card-content {
@@ -169,7 +204,7 @@ main { padding: 20px; }
     margin-bottom: 5px;
 }
 
-/* Формы (добавление/редактирование) */
+/* Формы */
 .form-row {
     display: flex;
     gap: 10px;
@@ -224,7 +259,6 @@ input[type="text"], input[type="date"], input[type="file"] {
 }
 .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
 .modal-header h2 { margin: 0; font-size: 1.2rem; }
-.btn-close { background: none; color: var(--text-muted); font-size: 1.5rem; }
+.btn-close { background: none; color: var(--text-muted); font-size: 1.5rem; border:none; cursor:pointer;}
 .btn-close:hover { color: white; }
-
 .hidden { display: none !important; }
