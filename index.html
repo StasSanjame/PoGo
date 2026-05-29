@@ -14,13 +14,21 @@
 
     <div class="top-bar">
         <div class="top-bar-main">
-            <button id="btnOpenAddModal" class="btn-primary">Добавить открытку</button>
+            <button id="btnOpenAddModal" class="btn-primary">
+                <span class="pc-text">Добавить открытку</span>
+                <span class="mobile-text">+</span>
+            </button>
+            
             <div class="search-container">
-                <input type="text" id="searchInput" placeholder="Поиск по названию..." autocomplete="off">
+                <input type="text" id="searchInput" placeholder="Поиск" autocomplete="off">
             </div>
         </div>
         
-        <div class="controls-right">
+        <button id="btnOpenFilters" class="mobile-only btn-filter-trigger">🎛️</button>
+        
+        <div id="controlsRight" class="controls-right">
+            <h3 class="mobile-only" style="margin-bottom: 10px;">Сортировка и фильтры</h3>
+            
             <select id="sortSelect">
                 <option value="dateDesc">По дате (новые сверху)</option>
                 <option value="dateAsc">По дате (старые сверху)</option>
@@ -40,12 +48,16 @@
             <select id="filterCountry"><option value="all">Все страны</option></select>
             <select id="filterRegion"><option value="all">Все регионы</option></select>
             <select id="filterCity"><option value="all">Все города</option></select>
+            
+            <button id="btnApplyFilters" class="mobile-only btn-submit" style="margin-top:20px;">Применить</button>
         </div>
     </div>
 
     <main>
         <div id="galleryGrid" class="gallery-grid"></div>
     </main>
+
+    <button id="btnScrollTop" class="btn-scroll-top hidden">▲</button>
 
     <div id="addModal" class="modal-overlay hidden">
         <div class="modal-content">
@@ -57,10 +69,10 @@
                 <label>Название покестопа (обязательно):</label>
                 <input type="text" id="stopName" required autocomplete="off">
 
-                <label>Дата открытки (текстом ДД.ММ.ГГГГ или через календарь):</label>
+                <label>Дата открытки (8 цифр ДДММГГГГ или календарь):</label>
                 <div class="date-input-group">
-                    <input type="text" id="stopDateText" placeholder="Например: 19.05.2026 или 19052026" autocomplete="off">
-                    <div class="calendar-btn" title="Выбрать через календарь">
+                    <input type="text" id="stopDateText" placeholder="Например: 19052026" maxlength="8" autocomplete="off">
+                    <div class="calendar-btn">
                         📅
                         <input type="date" id="stopDateNative">
                     </div>
