@@ -1,7 +1,6 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getFirestore, collection, addDoc, onSnapshot, query, updateDoc, doc, deleteDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
-// === ИМПОРТ АВТОРИЗАЦИИ ===
 import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
 // ==========================================
@@ -18,8 +17,6 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const storage = getStorage(app);
-
-// Инициализация авторизации
 const auth = getAuth(app);
 const provider = new GoogleAuthProvider();
 
@@ -49,9 +46,8 @@ const btnCloseFilters = document.getElementById('btnCloseFilters');
 const btnApplyFilters = document.getElementById('btnApplyFilters');
 const btnScrollTop = document.getElementById('btnScrollTop');
 
-// Кнопки авторизации
+// Авторизация
 const btnLogin = document.getElementById('btnLogin');
-const btnLogout = document.getElementById('btnLogout');
 
 let allCards = [];
 let currentDirection = 'from_me';
@@ -67,16 +63,19 @@ onAuthStateChanged(auth, (user) => {
 
 btnLogin.addEventListener('click', () => {
     signInWithPopup(auth, provider)
-        .then((result) => {
-            console.log("Успешный вход! Скопируй этот UID в правила Firebase:");
-            console.log(result.user.uid);
-            alert("Вход выполнен! Если это первый вход, проверь консоль браузера (F12) или вкладку Users в Firebase, чтобы скопировать свой UID для правил безопасности.");
+        .then(() => {
+            alert("Вход выполнен!");
         })
         .catch((error) => console.error("Ошибка авторизации:", error));
 });
 
-btnLogout.addEventListener('click', () => {
-    signOut(auth).then(() => alert("Вы вышли из режима редактирования."));
+// Навешиваем событие выхода на все кнопки-триггеры (для ПК и для мобильных) с подтверждением
+document.querySelectorAll('.btn-logout-trigger').forEach(btn => {
+    btn.addEventListener('click', () => {
+        if (confirm("Вы действительно хотите выйти из аккаунта?")) {
+            signOut(auth).then(() => alert("Вы вышли из режима редактирования."));
+        }
+    });
 });
 
 function getPostcardWord(count) {
