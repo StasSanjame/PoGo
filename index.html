@@ -3,14 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>База Открыток</title>
+    <title>Pokémon Go Открытки</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-
-    <datalist id="countriesList"></datalist>
-    <datalist id="regionsList"></datalist>
-    <datalist id="citiesList"></datalist>
 
     <div class="top-bar">
         <div class="top-bar-main">
@@ -22,6 +18,12 @@
             <div class="search-container">
                 <input type="text" id="searchInput" placeholder="Поиск" autocomplete="off">
             </div>
+
+            <select id="directionSelectPC" class="pc-only-inline select-direction">
+                <option value="from_me">Я</option>
+                <option value="to_me">Мне</option>
+            </select>
+            <button id="btnResetPC" class="pc-only-inline btn-reset-clear">Сбросить</button>
         </div>
         
         <button id="btnOpenFilters" class="mobile-only btn-filter-trigger">↕️</button>
@@ -52,11 +54,20 @@
             <select id="filterRegion"><option value="all">Все регионы</option></select>
             <select id="filterCity"><option value="all">Все города</option></select>
             
-            <button id="btnApplyFilters" class="mobile-only btn-submit" style="margin-top:10px;">Применить</button>
+            <div class="mobile-only mobile-direction-block">
+                <label>Тип открыток:</label>
+                <select id="directionSelectMobile" class="select-direction">
+                    <option value="from_me">Я</option>
+                    <option value="to_me">Мне</option>
+                </select>
+                <button id="btnApplyFilters" class="btn-submit" style="margin-top:15px;">Применить</button>
+                <button id="btnResetMobile" class="btn-cancel" style="margin-top:10px;">Сбросить</button>
+            </div>
         </div>
     </div>
 
     <main>
+        <div id="filterCounter" class="filter-counter hidden"></div>
         <div id="galleryGrid" class="gallery-grid"></div>
     </main>
 
@@ -72,34 +83,54 @@
                 <label>Название покестопа (обязательно):</label>
                 <input type="text" id="stopName" required autocomplete="off">
 
+                <label>Тип открытки:</label>
+                <select id="stopDirection" style="width: 100%; margin-bottom: 5px;">
+                    <option value="from_me">Я (Подарил)</option>
+                    <option value="to_me">Мне (Получил)</option>
+                </select>
+
                 <label>Дата открытки (8 цифр ДДММГГГГ или календарь):</label>
                 <div class="date-input-group" style="margin-bottom:15px;">
                     <input type="text" id="stopDateText" placeholder="Например: 19052026" maxlength="8" autocomplete="off">
-                    <button type="button" class="calendar-btn" id="btnDateNative" title="Выбрать через календарь">📅</button>
-                    <input type="date" id="stopDateNative" class="hidden-date-input">
+                    <div class="calendar-wrapper">
+                        <button type="button" class="calendar-btn" id="btnDateNative" title="Выбрать через календарь">📅</button>
+                        <input type="date" id="stopDateNative" class="native-date-input">
+                    </div>
                 </div>
 
                 <div class="form-row">
                     <div>
                         <label>Страна:</label>
-                        <input type="text" id="stopCountry" list="countriesList" autocomplete="off">
+                        <div class="custom-combobox" id="comboCountryAdd">
+                            <input type="text" id="stopCountry" autocomplete="off">
+                            <span class="combobox-arrow">▼</span>
+                            <div class="combobox-dropdown hidden"></div>
+                        </div>
                     </div>
                     <div>
                         <label>Город:</label>
-                        <input type="text" id="stopCity" list="citiesList" autocomplete="off">
+                        <div class="custom-combobox" id="comboCityAdd">
+                            <input type="text" id="stopCity" autocomplete="off">
+                            <span class="combobox-arrow">▼</span>
+                            <div class="combobox-dropdown hidden"></div>
+                        </div>
                     </div>
                 </div>
                 
                 <label>Регион:</label>
-                <input type="text" id="stopRegion" list="regionsList" autocomplete="off" style="margin-bottom:15px;">
+                <div class="custom-combobox" id="comboRegionAdd" style="margin-bottom:15px;">
+                    <input type="text" id="stopRegion" autocomplete="off">
+                    <span class="combobox-arrow">▼</span>
+                    <div class="combobox-dropdown hidden"></div>
+                </div>
 
                 <label>Скриншот (обрежется автоматически):</label>
                 <input type="file" id="imageInput" accept="image/*">
 
-                <div class="checkbox-group">
+                <div id="addRecipientsGroup" class="checkbox-group">
                     <label><input type="checkbox" id="chkAlbum"> Альбом</label>
                     <label><input type="checkbox" id="chkFriend1"> Tupra</label>
-                    <label><input type="checkbox" id="chkFriend2"> CUMKILLER</label>
+                    <label><input type="checkbox" id="chkFriend2"> zxcCUMKILLER228pro</label>
                 </div>
 
                 <button type="submit" id="submitBtn" class="btn-submit">Сохранить открытку</button>
