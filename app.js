@@ -20,6 +20,7 @@ const storage = getStorage(app);
 const galleryGrid = document.getElementById('galleryGrid');
 const searchInput = document.getElementById('searchInput');
 const controlsRight = document.getElementById('controlsRight');
+const filterCounter = document.getElementById('filterCounter');
 
 const sortSelect = document.getElementById('sortSelect');
 const filterStatus = document.getElementById('filterStatus');
@@ -27,10 +28,15 @@ const filterCountry = document.getElementById('filterCountry');
 const filterRegion = document.getElementById('filterRegion');
 const filterCity = document.getElementById('filterCity');
 
+const directionSelectPC = document.getElementById('directionSelectPC');
+const directionSelectMobile = document.getElementById('directionSelectMobile');
+
 const addModal = document.getElementById('addModal');
 const btnOpenAddModal = document.getElementById('btnOpenAddModal');
 const btnCloseAddModal = document.getElementById('btnCloseAddModal');
 const uploadForm = document.getElementById('uploadForm');
+const stopDirection = document.getElementById('stopDirection');
+const addRecipientsGroup = document.getElementById('addRecipientsGroup');
 
 const btnOpenFilters = document.getElementById('btnOpenFilters');
 const btnCloseFilters = document.getElementById('btnCloseFilters');
@@ -38,6 +44,77 @@ const btnApplyFilters = document.getElementById('btnApplyFilters');
 const btnScrollTop = document.getElementById('btnScrollTop');
 
 let allCards = [];
+let currentDirection = 'from_me'; // Режим просмотра по умолчанию: "Я"
+
+// === КЛАССИФИКАЦИЯ СКЛАНЯЕМЫХ СЛОВ ===
+function getPostcardWord(count) {
+    const mod10 = count % 10;
+    const mod100 = count % 100;
+    if (mod100 >= 11 && mod100 <= 19) return "открыток";
+    if (mod10 === 1) return "открытка";
+    if (mod10 >= 2 && mod10 <= 4) return "открытки";
+    return "открыток";
+}
+
+// === УПРАВЛЕНИЕ КАСТОМНЫМИ ВЫПАДАЮЩИМИ СПИСКАМИ (COMBOBOX) ===
+function bindCombobox(containerEl, getItemsList) {
+    const input = containerEl.querySelector('input');
+    const arrow = containerEl.querySelector('.combobox-arrow');
+    const dropdown = containerEl.querySelector('.combobox-dropdown');
+
+    function renderDropdown(filterText = '') {
+        const items = getItemsList();
+        const normalizedFilter = filterText.toLowerCase();
+        const filtered = items.filter(item => item.toLowerCase().includes(normalizedFilter));
+        
+        dropdown.innerHTML = '';
+        if (filtered.length === 0) {
+            dropdown.classList.add('hidden');
+            return;
+        }
+        
+        filtered.forEach(item => {
+            const div = document.createElement('div');
+            div.className = 'combobox-item';
+            div.textContent = item;
+            div.addEventListener('click', () => {
+                input.value = item;
+                dropdown.classList.add('hidden');
+                input.dispatchEvent(new Event('input', { bubbles: true }));
+            });
+            dropdown.appendChild(div);
+        });
+        dropdown.classList.remove('hidden');
+    }
+
+    input.addEventListener('focus', () => renderDropdown(input.value));
+    input.addEventListener('input', () => renderDropdown(input.value));
+    
+    arrow.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (dropdown.classList.contains('hidden')) {
+            input.focus();
+            renderDropdown('');
+        } else {
+            dropdown.classList.add('hidden');
+        }
+    });
+
+    document.addEventListener('click', (e) => {
+        if (!containerEl.contains(e.target)) dropdown.classList.add('hidden');
+    });
+}
+
+// Инициализация списков главного окна добавления
+bindCombobox(document.getElementById('comboCountryAdd'), () => [...new Set(allCards.map(c => c.country).filter(Boolean))].sort());
+bindCombobox(document.getElementById('comboCityAdd'), () => [...new Set(allCards.map(c => c.city).filter(Boolean))].sort());
+bindCombobox(document.getElementById('comboRegionAdd'), () => [...new Set(allCards.map(c => c.region).filter(Boolean))].sort());
+
+// Скрытие списка получателей в модалке добавления, если выбрано "Мне"
+stopDirection.addEventListener('change', () => {
+    if (stopDirection.value === 'to_me') addRecipientsGroup.classList.add('hidden');
+    else addRecipientsGroup.classList.remove('hidden');
+});
 
 // === ОБРЕЗКА СКРИНШОТА ===
 async function cropImage(file) {
@@ -97,10 +174,11 @@ function formatToDisplay(dbStr) {
 
 // === СИНХРОНИЗАЦИЯ ПОЛЕЙ ДАТЫ ===
 function setupDateInputs(textInput, nativeInput, calendarBtn) {
-    // Безопасный вызов системного календаря при клике на нашу кнопку
     calendarBtn.addEventListener('click', (e) => {
-        e.preventDefault();
-        try { nativeInput.showPicker(); } catch (err) { /* На старых браузерах фоллбэк игнорируется */ }
+        if (window.innerWidth > 768) { // На ПК вызываем календарь скриптом
+            e.preventDefault();
+            try { nativeInput.showPicker(); } catch (err) {}
+        }
     });
 
     nativeInput.addEventListener('change', (e) => {
@@ -111,12 +189,38 @@ function setupDateInputs(textInput, nativeInput, calendarBtn) {
     });
 }
 
-// Настройка календаря в главной модалке
-setupDateInputs(
-    document.getElementById('stopDateText'), 
-    document.getElementById('stopDateNative'), 
-    document.getElementById('btnDateNative')
-);
+setupDateInputs(document.getElementById('stopDateText'), document.getElementById('stopDateNative'), document.getElementById('btnDateNative'));
+
+// === СИНХРОНИЗАЦИЯ ТУМБЛЕРОВ НАПРАВЛЕНИЯ (Я/МНЕ) ===
+function handleDirectionChange(val) {
+    currentDirection = val;
+    directionSelectPC.value = val;
+    directionSelectMobile.value = val;
+    
+    // Если переключились на "Мне", прячем статус-фильтр (у получателей нет статусов выполнения)
+    if (currentDirection === 'to_me') filterStatus.classList.add('hidden');
+    else filterStatus.classList.remove('hidden');
+
+    renderGallery();
+}
+directionSelectPC.addEventListener('change', (e) => handleDirectionChange(e.target.value));
+directionSelectMobile.addEventListener('change', (e) => handleDirectionChange(e.target.value));
+
+// === ФУНКЦИЯ СБРОСА ФИЛЬТРОВ ===
+function resetAllFilters() {
+    searchInput.value = '';
+    sortSelect.value = 'dateDesc';
+    filterStatus.value = 'all';
+    filterCountry.value = 'all';
+    filterRegion.value = 'all';
+    filterCity.value = 'all';
+    renderGallery();
+}
+document.getElementById('btnResetPC').addEventListener('click', resetAllFilters);
+document.getElementById('btnResetMobile').addEventListener('click', () => {
+    resetAllFilters();
+    controlsRight.classList.remove('open');
+});
 
 // === УПРАВЛЕНИЕ МОБИЛЬНЫМИ ФИЛЬТРАМИ ===
 btnOpenFilters.addEventListener('click', () => controlsRight.classList.add('open'));
@@ -128,12 +232,14 @@ window.addEventListener('scroll', () => {
     if (window.scrollY > 400) btnScrollTop.classList.remove('hidden');
     else btnScrollTop.classList.add('hidden');
 });
-btnScrollTop.addEventListener('click', () => {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-});
+btnScrollTop.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
 
 // === СОХРАНЕНИЕ НОВОЙ ОТКРЫТКИ ===
-btnOpenAddModal.addEventListener('click', () => addModal.classList.remove('hidden'));
+btnOpenAddModal.addEventListener('click', () => {
+    uploadForm.reset();
+    addRecipientsGroup.classList.remove('hidden');
+    addModal.classList.remove('hidden');
+});
 btnCloseAddModal.addEventListener('click', () => addModal.classList.add('hidden'));
 
 uploadForm.addEventListener('submit', async (e) => {
@@ -158,15 +264,17 @@ uploadForm.addEventListener('submit', async (e) => {
             imageUrl = await getDownloadURL(fileRef);
         }
 
+        const isToMe = stopDirection.value === 'to_me';
         const dataObj = {
             name: document.getElementById('stopName').value.trim(),
+            direction: stopDirection.value,
             date: parsedDate,
             country: document.getElementById('stopCountry').value.trim(),
             region: document.getElementById('stopRegion').value.trim(),
             city: document.getElementById('stopCity').value.trim(),
-            album: document.getElementById('chkAlbum').checked,
-            friend1: document.getElementById('chkFriend1').checked,
-            friend2: document.getElementById('chkFriend2').checked,
+            album: isToMe ? false : document.getElementById('chkAlbum').checked,
+            friend1: isToMe ? false : document.getElementById('chkFriend1').checked,
+            friend2: isToMe ? false : document.getElementById('chkFriend2').checked,
             imageUrl: imageUrl, imagePath: imagePath,
             createdAt: serverTimestamp()
         };
@@ -220,9 +328,6 @@ function updateFilterOptions() {
     populateSelect(filterCountry, countries, "Все страны");
     populateSelect(filterRegion, regions, "Все регионы");
     populateSelect(filterCity, cities, "Все города");
-    populateDatalist('countriesList', countries);
-    populateDatalist('regionsList', regions);
-    populateDatalist('citiesList', cities);
 }
 
 function populateSelect(sel, items, defText) {
@@ -231,24 +336,36 @@ function populateSelect(sel, items, defText) {
     if ([...items].includes(cur)) sel.value = cur;
 }
 
-function populateDatalist(id, items) {
-    const dl = document.getElementById(id); if (!dl) return; dl.innerHTML = '';
-    [...items].sort().forEach(i => { const o = document.createElement('option'); o.value = i; dl.appendChild(o); });
-}
-
+// === РЕНДЕРИНГ ГАЛЕРЕИ И СЧЕТЧИКА ===
 function renderGallery() {
-    let filtered = [...allCards];
+    // 1. Фильтруем массив по выбранной вкладке ("Я" или "Мне")
+    let categorized = allCards.filter(c => (c.direction || "from_me") === currentDirection);
+    const totalInCurrentCategory = categorized.length;
+
+    // 2. Применяем поисковые фильтры к этой категории
+    let filtered = [...categorized];
     const queryText = searchInput.value.toLowerCase();
     if (queryText) filtered = filtered.filter(c => (c.name || "").toLowerCase().includes(queryText));
 
-    const statusVal = filterStatus.value;
-    if (statusVal === 'completed') filtered = filtered.filter(c => c.album && c.friend1 && c.friend2);
-    else if (statusVal === 'missing') filtered = filtered.filter(c => !(c.album && c.friend1 && c.friend2));
+    if (currentDirection === 'from_me') {
+        const statusVal = filterStatus.value;
+        if (statusVal === 'completed') filtered = filtered.filter(c => c.album && c.friend1 && c.friend2);
+        else if (statusVal === 'missing') filtered = filtered.filter(c => !(c.album && c.friend1 && c.friend2));
+    }
 
     if (filterCountry.value !== 'all') filtered = filtered.filter(c => c.country === filterCountry.value);
     if (filterRegion.value !== 'all') filtered = filtered.filter(c => c.region === filterRegion.value);
     if (filterCity.value !== 'all') filtered = filtered.filter(c => c.city === filterCity.value);
 
+    // 3. Вывод счетчика (Только для "Я" и только если количество уменьшилось из-за поисковых фильтров)
+    if (currentDirection === 'from_me' && filtered.length < totalInCurrentCategory) {
+        filterCounter.textContent = `${filtered.length} ${getPostcardWord(filtered.length)}`;
+        filterCounter.classList.remove('hidden');
+    } else {
+        filterCounter.classList.add('hidden');
+    }
+
+    // 4. Сортировка
     const sortVal = sortSelect.value;
     filtered.sort((a, b) => {
         if (sortVal === 'dateDesc') return (b.date || "").localeCompare(a.date || "") || (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0);
@@ -272,29 +389,34 @@ filterCountry.addEventListener('change', renderGallery);
 filterRegion.addEventListener('change', renderGallery);
 filterCity.addEventListener('change', renderGallery);
 
-// === ЧТЕНИЕ КАРТОЧКИ ===
+// === ПРОСМОТР КАРТОЧКИ ===
 function createCardReadView(data) {
     const card = document.createElement('div'); card.className = 'card';
     const imgHtml = data.imageUrl ? `<img src="${data.imageUrl}" loading="lazy">` : ``;
     const locArr = [data.country, data.region, data.city].filter(Boolean);
     const locText = locArr.length > 0 ? locArr.join(', ') : "Локация не указана";
+    
+    const isToMe = data.direction === 'to_me';
+    const statusBlock = isToMe ? '' : `
+        <ul class="status-list">
+            <li>${data.album ? '✅' : '❌'} Альбом</li>
+            <li>${data.friend1 ? '✅' : '❌'} Tupra</li>
+            <li>${data.friend2 ? '✅' : '❌'} zxcCUMKILLER228pro</li>
+        </ul>
+    `;
 
     card.innerHTML = `
+        <button class="btn-card-edit-pencil" title="Редактировать">✏️</button>
         <div class="card-img-wrapper">${imgHtml}</div>
         <div class="card-content">
             <div class="card-title">${data.name || "Без названия"}</div>
             <div class="card-location">
                 📅 ${formatToDisplay(data.date)}<br>📍 ${locText}
             </div>
-            <ul class="status-list">
-                <li>${data.album ? '✅' : '❌'} Альбом</li>
-                <li>${data.friend1 ? '✅' : '❌'} Tupra</li>
-                <li>${data.friend2 ? '✅' : '❌'} CUMKILLER</li>
-            </ul>
-            <button class="btn-edit">Редактировать</button>
+            ${statusBlock}
         </div>
     `;
-    card.querySelector('.btn-edit').onclick = () => card.replaceWith(createCardEditView(data));
+    card.querySelector('.btn-card-edit-pencil').onclick = () => card.replaceWith(createCardEditView(data));
     return card;
 }
 
@@ -302,39 +424,86 @@ function createCardReadView(data) {
 function createCardEditView(data) {
     const card = document.createElement('div'); card.className = 'card';
     card.style.border = "1px solid var(--btn-primary)";
+    
     const txtId = `editTxt_${data.id}`; const natId = `editNat_${data.id}`; const btnId = `btnEditDate_${data.id}`;
+    const dirId = `editDir_${data.id}`; const recGroupId = `editRecGroup_${data.id}`;
+
+    const isToMe = data.direction === 'to_me';
 
     card.innerHTML = `
         <div class="card-content" style="padding-top: 10px;">
             <label>Название:</label><input type="text" class="edit-name" value="${data.name || ''}">
             
+            <label>Тип открытки:</label>
+            <select id="${dirId}" style="width:100%; margin-bottom: 5px;">
+                <option value="from_me" ${!isToMe ? 'selected' : ''}>Я (Подарил)</option>
+                <option value="to_me" ${isToMe ? 'selected' : ''}>Мне (Получил)</option>
+            </select>
+
             <label>Дата (8 цифр ДДММГГГГ):</label>
             <div class="date-input-group" style="margin-bottom:15px;">
                 <input type="text" id="${txtId}" class="edit-date-text" value="${formatToUserText(data.date)}" placeholder="Например: 19052026" maxlength="8">
-                <button type="button" class="calendar-btn" id="${btnId}">📅</button>
-                <input type="date" id="${natId}" class="hidden-date-input">
+                <div class="calendar-wrapper">
+                    <button type="button" class="calendar-btn" id="${btnId}">📅</button>
+                    <input type="date" id="${natId}" class="native-date-input">
+                </div>
             </div>
 
             <div class="form-row">
-                <div><label>Страна:</label><input type="text" class="edit-country" list="countriesList" value="${data.country || ''}"></div>
-                <div><label>Город:</label><input type="text" class="edit-city" list="citiesList" value="${data.city || ''}"></div>
+                <div>
+                    <label>Страна:</label>
+                    <div class="custom-combobox">
+                        <input type="text" class="edit-country" value="${data.country || ''}" autocomplete="off">
+                        <span class="combobox-arrow">▼</span>
+                        <div class="combobox-dropdown hidden"></div>
+                    </div>
+                </div>
+                <div>
+                    <label>Город:</label>
+                    <div class="custom-combobox">
+                        <input type="text" class="edit-city" value="${data.city || ''}" autocomplete="off">
+                        <span class="combobox-arrow">▼</span>
+                        <div class="combobox-dropdown hidden"></div>
+                    </div>
+                </div>
             </div>
-            <label>Регион:</label><input type="text" class="edit-region" list="regionsList" value="${data.region || ''}" style="margin-bottom:10px;">
+            
+            <label>Регион:</label>
+            <div class="custom-combobox" style="margin-bottom:10px;">
+                <input type="text" class="edit-region" value="${data.region || ''}" autocomplete="off">
+                <span class="combobox-arrow">▼</span>
+                <div class="combobox-dropdown hidden"></div>
+            </div>
             
             <label>Заменить скриншот:</label><input type="file" class="edit-img" accept="image/*">
-            <div class="checkbox-group">
+            
+            <div id="${recGroupId}" class="checkbox-group ${isToMe ? 'hidden' : ''}">
                 <label><input type="checkbox" class="edit-album" ${data.album ? 'checked' : ''}> Альбом</label>
                 <label><input type="checkbox" class="edit-f1" ${data.friend1 ? 'checked' : ''}> Tupra</label>
-                <label><input type="checkbox" class="edit-f2" ${data.friend2 ? 'checked' : ''}> CUMKILLER</label>
+                <label><input type="checkbox" class="edit-f2" ${data.friend2 ? 'checked' : ''}> zxcCUMKILLER228pro</label>
             </div>
-            <button class="btn-submit btn-save">Сохранить</button>
-            <button class="btn-cancel">Отмена</button>
+            
+            <button class="btn-submit btn-save" style="margin-top: 15px;">Сохранить</button>
+            <button class="btn-cancel" style="margin-top: 10px;">Отмена</button>
             <button class="btn-delete-small">🗑 Удалить</button>
         </div>
     `;
 
+    // Инициализация календаря и комбобоксов внутри карточки
     setTimeout(() => { 
         setupDateInputs(document.getElementById(txtId), document.getElementById(natId), document.getElementById(btnId)); 
+        
+        const combos = card.querySelectorAll('.custom-combobox');
+        bindCombobox(combos[0], () => [...new Set(allCards.map(c => c.country).filter(Boolean))].sort());
+        bindCombobox(combos[1], () => [...new Set(allCards.map(c => c.city).filter(Boolean))].sort());
+        bindCombobox(combos[2], () => [...new Set(allCards.map(c => c.region).filter(Boolean))].sort());
+
+        const dirSelect = document.getElementById(dirId);
+        const recGroup = document.getElementById(recGroupId);
+        dirSelect.addEventListener('change', () => {
+            if (dirSelect.value === 'to_me') recGroup.classList.add('hidden');
+            else recGroup.classList.remove('hidden');
+        });
     }, 0);
 
     card.querySelector('.btn-cancel').onclick = () => card.replaceWith(data.node);
@@ -357,18 +526,22 @@ function createCardEditView(data) {
                 const fileRef = ref(storage, newImagePath);
                 await uploadBytes(fileRef, croppedBlob);
                 newImageUrl = await getDownloadURL(fileRef);
-                if (data.imagePath) await deleteObject(ref(storage, data.imagePath)).catch(e => {});
+                if (data.imagePath) await deleteObject(ref(storage, data.imagePath)).catch(() => {});
             }
+
+            const nextDir = document.getElementById(dirId).value;
+            const finalToMe = nextDir === 'to_me';
 
             const updatedData = {
                 name: card.querySelector('.edit-name').value.trim(),
+                direction: nextDir,
                 date: parsedDate,
                 country: card.querySelector('.edit-country').value.trim(),
                 region: card.querySelector('.edit-region').value.trim(),
                 city: card.querySelector('.edit-city').value.trim(),
-                album: card.querySelector('.edit-album').checked,
-                friend1: card.querySelector('.edit-f1').checked,
-                friend2: card.querySelector('.edit-f2').checked,
+                album: finalToMe ? false : card.querySelector('.edit-album').checked,
+                friend1: finalToMe ? false : card.querySelector('.edit-f1').checked,
+                friend2: finalToMe ? false : card.querySelector('.edit-f2').checked,
                 imageUrl: newImageUrl, imagePath: newImagePath
             };
             await updateDoc(doc(db, "postcards", data.id), updatedData);
