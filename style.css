@@ -9,130 +9,119 @@
 }
 
 body {
-    margin: 0;
-    padding: 0;
+    margin: 0; padding: 0;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    background-color: var(--bg-main);
-    color: var(--text-main);
+    background-color: var(--bg-main); color: var(--text-main);
 }
 
+/* Верхняя панель ПК — растянутый поиск */
 .top-bar {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    gap: 20px;
-    padding: 20px;
+    gap: 15px;
+    padding: 15px 20px;
     background-color: var(--bg-card);
     border-bottom: 1px solid var(--border-color);
-    position: sticky;
-    top: 0;
-    z-index: 100;
+    position: sticky; top: 0; z-index: 100;
 }
 
 .top-bar-main {
-    display: flex;
-    gap: 15px;
-    flex-grow: 1;
-    align-items: center;
+    display: flex; gap: 15px; flex-grow: 1; align-items: center;
 }
 
-#btnOpenAddModal { flex-shrink: 0; }
-
-.search-container {
-    flex-grow: 1;
-    display: flex;
-    justify-content: center;
-}
-
+.search-container { flex-grow: 1; display: flex; }
 #searchInput {
-    width: 100%;
-    max-width: 400px;
-    padding: 10px 15px;
-    background: var(--bg-main);
-    border: 1px solid var(--border-color);
-    color: var(--text-main);
-    border-radius: 6px;
-    outline: none;
+    width: 100%; padding: 10px 15px;
+    background: var(--bg-main); border: 1px solid var(--border-color);
+    color: var(--text-main); border-radius: 6px; outline: none;
 }
 #searchInput:focus { border-color: var(--btn-primary); }
 
-.controls-right {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-    flex-shrink: 0;
-}
+.controls-right { display: flex; flex-wrap: wrap; gap: 10px; flex-shrink: 0; }
 
+/* Унификация выпадающих списков */
 select {
-    padding: 10px;
-    background: var(--bg-main);
-    color: var(--text-main);
-    border: 1px solid var(--border-color);
-    border-radius: 6px;
-    outline: none;
-    cursor: pointer;
+    padding: 10px 30px 10px 15px;
+    background: var(--bg-main); color: var(--text-main);
+    border: 1px solid var(--border-color); border-radius: 6px;
+    outline: none; cursor: pointer; box-sizing: border-box;
+    min-width: 150px;
 }
 select:focus { border-color: var(--btn-primary); }
 
-@media (max-width: 1024px) {
-    .top-bar { flex-direction: column; align-items: stretch; }
-    .top-bar-main { width: 100%; }
-    .search-container { justify-content: flex-start; }
-    #searchInput { max-width: none; }
-    .controls-right { width: 100%; justify-content: flex-start; }
-}
+.mobile-only { display: none !important; }
+.mobile-text { display: none; }
 
+/* Кнопки */
 button { cursor: pointer; border: none; border-radius: 6px; font-weight: 600; transition: 0.2s; }
 .btn-primary { background-color: var(--btn-primary); color: white; padding: 10px 20px; }
 .btn-primary:hover { background-color: var(--btn-primary-hover); }
-
 .btn-submit { width: 100%; background-color: var(--btn-primary); color: white; padding: 12px; margin-top: 15px; font-size: 1rem; }
-.btn-submit:hover { background-color: var(--btn-primary-hover); }
-
 .btn-edit { width: 100%; background-color: transparent; color: var(--btn-primary); border: 1px solid var(--btn-primary); padding: 8px; margin-top: 15px; }
 .btn-edit:hover { background-color: rgba(21, 94, 239, 0.1); }
-
-.btn-delete-small { background-color: transparent; color: #ef4444; padding: 8px; border: 1px solid #ef4444; margin-top: 10px; width: 100%; }
-.btn-delete-small:hover { background-color: rgba(239, 68, 68, 0.1); }
-
 .btn-cancel { background-color: transparent; color: var(--text-muted); border: 1px solid var(--border-color); padding: 8px; margin-top: 10px; width: 100%; }
 .btn-cancel:hover { background-color: rgba(255, 255, 255, 0.1); color: white; }
+.btn-delete-small { background-color: transparent; color: #ef4444; padding: 8px; border: 1px solid #ef4444; margin-top: 10px; width: 100%; }
 
+/* Минималистичная кнопка ВВЕРХ */
+.btn-scroll-top {
+    position: fixed; bottom: 25px; right: 25px;
+    background: none; border: none; color: var(--text-muted);
+    font-size: 28px; cursor: pointer; z-index: 99;
+    padding: 5px; transition: 0.2s; line-height: 1;
+}
+.btn-scroll-top:hover { color: white; transform: translateY(-4px); }
+
+/* Адаптивность для телефонов */
+@media (max-width: 768px) {
+    .mobile-only { display: block !important; }
+    .mobile-text { display: inline !important; }
+    .pc-text { display: none !important; }
+
+    .top-bar { padding: 10px; gap: 10px; }
+    #btnOpenAddModal { width: 40px; height: 40px; padding: 0; display: flex; justify-content: center; align-items: center; }
+    
+    .btn-filter-trigger {
+        background: var(--bg-main); border: 1px solid var(--border-color);
+        width: 40px; height: 40px; display: flex; justify-content: center; align-items: center; font-size: 1.2rem;
+    }
+
+    /* Превращаем блок фильтров в модальное окно на мобилке */
+    .controls-right {
+        display: none; position: fixed;
+        top: 0; left: 0; right: 0; bottom: 0;
+        background: rgba(16, 22, 47, 0.98); z-index: 1001;
+        flex-direction: column; justify-content: center; align-items: center;
+        padding: 30px; gap: 15px;
+    }
+    .controls-right.open { display: flex; }
+    .controls-right select { width: 100%; max-width: 300px; }
+}
+
+/* Галерея карточек */
 main { padding: 20px; }
-.gallery-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-    gap: 20px;
-}
-
-.card {
-    background-color: var(--bg-card);
-    border: 1px solid var(--border-color);
-    border-radius: 12px;
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
-}
-
-.card-img-wrapper {
-    aspect-ratio: 1170 / 1105;
-    width: 100%;
-    background-color: transparent;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    overflow: hidden;
-    border-bottom: 1px solid var(--border-color);
-}
+.gallery-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 20px; }
+.card { background-color: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; overflow: hidden; display: flex; flex-direction: column; }
+.card-img-wrapper { aspect-ratio: 1170 / 1105; width: 100%; display: flex; justify-content: center; align-items: center; overflow: hidden; border-bottom: 1px solid var(--border-color); }
 .card-img-wrapper img { width: 100%; height: 100%; object-fit: cover; }
-
 .card-content { padding: 15px; flex-grow: 1; display: flex; flex-direction: column; }
 .card-title { font-size: 1.1rem; font-weight: 700; margin-bottom: 5px; }
 .card-location { font-size: 0.85rem; color: var(--text-muted); margin-bottom: 15px; line-height: 1.4; }
 .status-list { list-style: none; padding: 0; margin: 0; flex-grow: 1; }
 .status-list li { font-size: 0.95rem; margin-bottom: 5px; }
 
-/* Формы и поля */
+/* Кастомное поле даты */
+.date-input-group { display: flex; gap: 10px; align-items: center; width: 100%; }
+.date-input-group input[type="text"] { flex-grow: 1; margin: 0; }
+.calendar-btn {
+    position: relative; width: 45px; height: 36px;
+    background-color: var(--bg-main); border: 1px solid var(--border-color);
+    border-radius: 4px; display: flex; justify-content: center; align-items: center; font-size: 1.1rem; cursor: pointer;
+}
+.calendar-btn input[type="date"] { position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
+
+/* Элементы форм общие */
 .form-row { display: flex; gap: 10px; margin-bottom: 15px; }
 .form-row > div { flex: 1; }
 label { display: block; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 5px; margin-top: 10px; }
@@ -142,42 +131,11 @@ input[type="text"], input[type="file"] {
 .checkbox-group { display: flex; flex-direction: column; gap: 8px; margin-top: 15px; }
 .checkbox-group label { margin: 0; font-size: 0.95rem; color: var(--text-main); display: flex; align-items: center; gap: 8px;}
 
-/* Кастомное поле даты */
-.date-input-group {
-    display: flex;
-    gap: 10px;
-    align-items: center;
-    width: 100%;
-}
-.date-input-group input[type="text"] { flex-grow: 1; margin: 0; }
-.calendar-btn {
-    position: relative;
-    width: 45px;
-    height: 35px;
-    background-color: var(--bg-card);
-    border: 1px solid var(--border-color);
-    border-radius: 4px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    font-size: 1.2rem;
-}
-.calendar-btn input[type="date"] {
-    position: absolute;
-    top: 0; left: 0; width: 100%; height: 100%;
-    opacity: 0;
-    cursor: pointer;
-}
-
-.modal-overlay {
-    position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.7); display: flex; justify-content: center; align-items: center; z-index: 1000; padding: 20px;
-}
+/* Стандартные модалки */
+.modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.7); display: flex; justify-content: center; align-items: center; z-index: 1000; padding: 20px; }
 .modal-overlay.hidden { display: none; }
-.modal-content {
-    background: var(--bg-card); padding: 25px; border-radius: 12px; width: 100%; max-width: 500px; max-height: 90vh; overflow-y: auto; border: 1px solid var(--border-color);
-}
+.modal-content { background: var(--bg-card); padding: 25px; border-radius: 12px; width: 100%; max-width: 500px; max-height: 90vh; overflow-y: auto; border: 1px solid var(--border-color); }
 .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
 .modal-header h2 { margin: 0; font-size: 1.2rem; }
 .btn-close { background: none; color: var(--text-muted); font-size: 1.5rem; border:none; cursor:pointer;}
-.btn-close:hover { color: white; }
 .hidden { display: none !important; }
