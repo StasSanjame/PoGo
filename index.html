@@ -8,12 +8,23 @@
 </head>
 <body>
 
+    <datalist id="countriesList"></datalist>
+    <datalist id="regionsList"></datalist>
+    <datalist id="citiesList"></datalist>
+
     <div class="top-bar">
         <div class="top-bar-main">
-            <button id="btnOpenAddModal" class="btn-primary">
+            <button id="btnLogin" class="btn-primary guest-only">
+                <span class="pc-text">Авторизация</span>
+                <span class="mobile-text">Вход</span>
+            </button>
+
+            <button id="btnOpenAddModal" class="btn-primary admin-only">
                 <span class="pc-text">Добавить открытку</span>
                 <span class="mobile-text">+</span>
             </button>
+            
+            <button id="btnLogout" class="btn-logout admin-only" title="Выйти из режима редактирования">🚪</button>
             
             <div class="search-container">
                 <input type="text" id="searchInput" placeholder="Поиск" autocomplete="off">
