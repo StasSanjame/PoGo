@@ -18,7 +18,6 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const storage = getStorage(app);
 
-// Элементы интерфейса
 const galleryGrid = document.getElementById('galleryGrid');
 const searchInput = document.getElementById('searchInput');
 
@@ -33,14 +32,47 @@ const btnOpenAddModal = document.getElementById('btnOpenAddModal');
 const btnCloseAddModal = document.getElementById('btnCloseAddModal');
 const uploadForm = document.getElementById('uploadForm');
 
-// Глобальный массив всех открыток для локальной фильтрации/сортировки
 let allCards = [];
 
-// === УПРАВЛЕНИЕ МОДАЛЬНЫМ ОКНОМ ===
+// === ФУНКЦИЯ ОБРЕЗКИ СКРИНШОТА ===
+// Пропорционально отрезает верх и низ (эквивалент 601px и 826px от 2532px)
+async function cropImage(file) {
+    return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+
+            // Высчитываем пропорции относительно оригинального размера 1170x2532
+            const originalHeight = 2532;
+            const topCropRatio = 601 / originalHeight;
+            const targetHeightRatio = 1105 / originalHeight;
+
+            const topCrop = img.height * topCropRatio;
+            const targetHeight = img.height * targetHeightRatio;
+
+            canvas.width = img.width;
+            canvas.height = targetHeight;
+
+            // Рисуем обрезанную часть на canvas
+            ctx.drawImage(img, 0, topCrop, img.width, targetHeight, 0, 0, canvas.width, canvas.height);
+
+            // Конвертируем обратно в файл
+            canvas.toBlob((blob) => {
+                resolve(blob);
+            }, file.type || 'image/jpeg', 0.9);
+        };
+        img.onerror = reject;
+        img.src = URL.createObjectURL(file);
+    });
+}
+
+
+// Управление модальным окном
 btnOpenAddModal.addEventListener('click', () => addModal.classList.remove('hidden'));
 btnCloseAddModal.addEventListener('click', () => addModal.classList.add('hidden'));
 
-// === ЗАГРУЗКА НОВОЙ ОТКРЫТКИ ===
+// === СОХРАНЕНИЕ НОВОЙ ОТКРЫТКИ ===
 uploadForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     const btn = document.getElementById('submitBtn');
@@ -54,17 +86,19 @@ uploadForm.addEventListener('submit', async (e) => {
         let imageUrl = null;
         let imagePath = null;
 
-        // Загружаем картинку только если она выбрана
         if (file) {
+            // Обрезаем картинку перед загрузкой!
+            const croppedBlob = await cropImage(file);
+            
             imagePath = 'postcards/' + Date.now() + '_' + file.name;
             const fileRef = ref(storage, imagePath);
-            await uploadBytes(fileRef, file);
+            await uploadBytes(fileRef, croppedBlob); // Загружаем обрезанную
             imageUrl = await getDownloadURL(fileRef);
         }
 
         const dataObj = {
             name: document.getElementById('stopName').value.trim(),
-            date: document.getElementById('stopDate').value || "", // YYYY-MM-DD
+            date: document.getElementById('stopDate').value || "",
             country: document.getElementById('stopCountry').value.trim(),
             region: document.getElementById('stopRegion').value.trim(),
             city: document.getElementById('stopCity').value.trim(),
@@ -89,7 +123,7 @@ uploadForm.addEventListener('submit', async (e) => {
     }
 });
 
-// === ПОЛУЧЕНИЕ ДАННЫХ ИЗ БАЗЫ В РЕАЛЬНОМ ВРЕМЕНИ ===
+// === ПОЛУЧЕНИЕ ДАННЫХ ===
 onSnapshot(query(collection(db, "postcards")), (snapshot) => {
     allCards = [];
     snapshot.forEach((doc) => {
@@ -100,7 +134,7 @@ onSnapshot(query(collection(db, "postcards")), (snapshot) => {
     renderGallery();
 });
 
-// === ОБНОВЛЕНИЕ ВЫПАДАЮЩИХ СПИСКОВ (Уникальные значения) ===
+// === ОБНОВЛЕНИЕ ФИЛЬТРОВ И АВТОЗАПОЛНЕНИЯ (DATALISTS) ===
 function updateFilterOptions() {
     const countries = new Set();
     const regions = new Set();
@@ -112,13 +146,19 @@ function updateFilterOptions() {
         if(card.city) cities.add(card.city);
     });
 
+    // Обновляем фильтры в верхней панели
     populateSelect(filterCountry, countries, "Все страны");
     populateSelect(filterRegion, regions, "Все регионы");
     populateSelect(filterCity, cities, "Все города");
+
+    // Обновляем списки автозаполнения (Datalists) для форм ввода
+    populateDatalist('countriesList', countries);
+    populateDatalist('regionsList', regions);
+    populateDatalist('citiesList', cities);
 }
 
 function populateSelect(selectElement, itemsSet, defaultText) {
-    const currentValue = selectElement.value; // Запоминаем выбор пользователя
+    const currentValue = selectElement.value;
     selectElement.innerHTML = `<option value="all">${defaultText}</option>`;
     
     [...itemsSet].sort().forEach(item => {
@@ -127,34 +167,36 @@ function populateSelect(selectElement, itemsSet, defaultText) {
         option.textContent = item;
         selectElement.appendChild(option);
     });
-    // Возвращаем выбор, если он все еще актуален
     if ([...itemsSet].includes(currentValue)) selectElement.value = currentValue;
 }
+
+function populateDatalist(datalistId, itemsSet) {
+    const datalist = document.getElementById(datalistId);
+    if (!datalist) return;
+    datalist.innerHTML = '';
+    [...itemsSet].sort().forEach(item => {
+        const option = document.createElement('option');
+        option.value = item;
+        datalist.appendChild(option);
+    });
+}
+
 
 // === ЛОГИКА ФИЛЬТРАЦИИ И СОРТИРОВКИ ===
 function renderGallery() {
     let filtered = [...allCards];
     const queryText = searchInput.value.toLowerCase();
 
-    // 1. Поиск по тексту
-    if (queryText) {
-        filtered = filtered.filter(c => (c.name || "").toLowerCase().includes(queryText));
-    }
+    if (queryText) filtered = filtered.filter(c => (c.name || "").toLowerCase().includes(queryText));
 
-    // 2. Статус сбора
     const statusVal = filterStatus.value;
-    if (statusVal === 'completed') {
-        filtered = filtered.filter(c => c.album && c.friend1 && c.friend2);
-    } else if (statusVal === 'missing') {
-        filtered = filtered.filter(c => !(c.album && c.friend1 && c.friend2));
-    }
+    if (statusVal === 'completed') filtered = filtered.filter(c => c.album && c.friend1 && c.friend2);
+    else if (statusVal === 'missing') filtered = filtered.filter(c => !(c.album && c.friend1 && c.friend2));
 
-    // 3. Локация
     if (filterCountry.value !== 'all') filtered = filtered.filter(c => c.country === filterCountry.value);
     if (filterRegion.value !== 'all') filtered = filtered.filter(c => c.region === filterRegion.value);
     if (filterCity.value !== 'all') filtered = filtered.filter(c => c.city === filterCity.value);
 
-    // 4. Сортировка
     const sortVal = sortSelect.value;
     filtered.sort((a, b) => {
         if (sortVal === 'dateDesc') return (b.date || "").localeCompare(a.date || "") || (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0);
@@ -167,15 +209,12 @@ function renderGallery() {
         return 0;
     });
 
-    // Отрисовка
     galleryGrid.innerHTML = '';
     filtered.forEach(data => {
-        const cardNode = createCardReadView(data);
-        galleryGrid.appendChild(cardNode);
+        galleryGrid.appendChild(createCardReadView(data));
     });
 }
 
-// Слушатели событий для перерисовки галереи
 searchInput.addEventListener('input', renderGallery);
 sortSelect.addEventListener('change', renderGallery);
 filterStatus.addEventListener('change', renderGallery);
@@ -183,24 +222,19 @@ filterCountry.addEventListener('change', renderGallery);
 filterRegion.addEventListener('change', renderGallery);
 filterCity.addEventListener('change', renderGallery);
 
-
-// === ФОРМАТИРОВАНИЕ ДАТЫ ===
 function formatDateStr(dateStr) {
     if (!dateStr) return "Дата не указана";
-    const parts = dateStr.split('-'); // YYYY-MM-DD
+    const parts = dateStr.split('-');
     if(parts.length === 3) return `${parts[2]}.${parts[1]}.${parts[0]}`;
     return dateStr;
 }
 
-// === СОЗДАНИЕ КАРТОЧКИ (РЕЖИМ ЧТЕНИЯ) ===
+// === СОЗДАНИЕ КАРТОЧКИ (ЧТЕНИЕ) ===
 function createCardReadView(data) {
     const card = document.createElement('div');
     card.className = 'card';
     
-    // Блок с картинкой или белым фоном
-    const imgHtml = data.imageUrl 
-        ? `<img src="${data.imageUrl}" loading="lazy">` 
-        : ``; // Оставляем пустой белый div
+    const imgHtml = data.imageUrl ? `<img src="${data.imageUrl}" loading="lazy">` : ``;
 
     const locArr = [data.country, data.region, data.city].filter(Boolean);
     const locText = locArr.length > 0 ? locArr.join(', ') : "Локация не указана";
@@ -222,19 +256,15 @@ function createCardReadView(data) {
         </div>
     `;
 
-    // Кнопка редактирования переключает карточку в режим формы
-    card.querySelector('.btn-edit').onclick = () => {
-        card.replaceWith(createCardEditView(data));
-    };
-
+    card.querySelector('.btn-edit').onclick = () => card.replaceWith(createCardEditView(data));
     return card;
 }
 
-// === СОЗДАНИЕ КАРТОЧКИ (РЕЖИМ РЕДАКТИРОВАНИЯ) ===
+// === СОЗДАНИЕ КАРТОЧКИ (РЕДАКТИРОВАНИЕ) ===
 function createCardEditView(data) {
     const card = document.createElement('div');
     card.className = 'card';
-    card.style.border = "1px solid var(--accent)"; // Подсветка режима редактирования
+    card.style.border = "1px solid var(--btn-primary)";
 
     card.innerHTML = `
         <div class="card-content" style="padding-top: 10px;">
@@ -245,10 +275,10 @@ function createCardEditView(data) {
             <input type="date" class="edit-date" value="${data.date || ''}">
 
             <div class="form-row">
-                <div><label>Страна:</label><input type="text" class="edit-country" value="${data.country || ''}"></div>
-                <div><label>Регион:</label><input type="text" class="edit-region" value="${data.region || ''}"></div>
+                <div><label>Страна:</label><input type="text" class="edit-country" list="countriesList" value="${data.country || ''}"></div>
+                <div><label>Регион:</label><input type="text" class="edit-region" list="regionsList" value="${data.region || ''}"></div>
             </div>
-            <label>Город:</label><input type="text" class="edit-city" value="${data.city || ''}" style="margin-bottom:10px;">
+            <label>Город:</label><input type="text" class="edit-city" list="citiesList" value="${data.city || ''}" style="margin-bottom:10px;">
 
             <label>Заменить/Добавить скриншот:</label>
             <input type="file" class="edit-img" accept="image/*">
@@ -264,7 +294,6 @@ function createCardEditView(data) {
         </div>
     `;
 
-    // Логика Сохранения
     card.querySelector('.btn-save').onclick = async () => {
         const btnSave = card.querySelector('.btn-save');
         btnSave.textContent = "Сохранение...";
@@ -275,15 +304,15 @@ function createCardEditView(data) {
             let newImageUrl = data.imageUrl;
             let newImagePath = data.imagePath;
 
-            // Если выбрали новую картинку
             if (newFile) {
-                // 1. Загружаем новую
+                // Обрезаем новую картинку перед загрузкой
+                const croppedBlob = await cropImage(newFile);
+
                 newImagePath = 'postcards/' + Date.now() + '_' + newFile.name;
                 const fileRef = ref(storage, newImagePath);
-                await uploadBytes(fileRef, newFile);
+                await uploadBytes(fileRef, croppedBlob);
                 newImageUrl = await getDownloadURL(fileRef);
 
-                // 2. Удаляем старую (если была)
                 if (data.imagePath) {
                     await deleteObject(ref(storage, data.imagePath)).catch(e => console.log("Старое фото не удалено:", e));
                 }
@@ -303,8 +332,6 @@ function createCardEditView(data) {
             };
 
             await updateDoc(doc(db, "postcards", data.id), updatedData);
-            // Firebase onSnapshot сам перерисует галерею после обновления!
-
         } catch (error) {
             console.error("Ошибка обновления:", error);
             alert("Не удалось сохранить изменения.");
@@ -313,14 +340,11 @@ function createCardEditView(data) {
         }
     };
 
-    // Логика Удаления (оставил внутри редактирования на всякий случай)
     card.querySelector('.btn-delete-small').onclick = async () => {
         if (confirm(`Точно удалить открытку "${data.name}" НАВСЕГДА?`)) {
             try {
                 await deleteDoc(doc(db, "postcards", data.id));
-                if (data.imagePath) {
-                    await deleteObject(ref(storage, data.imagePath));
-                }
+                if (data.imagePath) await deleteObject(ref(storage, data.imagePath));
             } catch (error) {
                 console.error("Ошибка удаления:", error);
             }
