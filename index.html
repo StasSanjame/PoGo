@@ -33,8 +33,8 @@
 
             <select id="filterStatus">
                 <option value="all">Все открытки</option>
-                <option value="completed">Только собранные</option>
-                <option value="missing">Нужны копии</option>
+                <option value="completed">У всех</option>
+                <option value="missing">Не у всех</option>
             </select>
 
             <select id="filterCountry"><option value="all">Все страны</option></select>
@@ -44,8 +44,7 @@
     </div>
 
     <main>
-        <div id="galleryGrid" class="gallery-grid">
-            </div>
+        <div id="galleryGrid" class="gallery-grid"></div>
     </main>
 
     <div id="addModal" class="modal-overlay hidden">
@@ -56,12 +55,14 @@
             </div>
             <form id="uploadForm">
                 <label>Название покестопа (обязательно):</label>
-                <input type="text" id="stopName" required>
+                <input type="text" id="stopName" required autocomplete="off">
 
-                <div class="form-row">
-                    <div>
-                        <label>Дата открытки:</label>
-                        <input type="date" id="stopDate">
+                <label>Дата открытки (текстом ДД.ММ.ГГГГ или через календарь):</label>
+                <div class="date-input-group">
+                    <input type="text" id="stopDateText" placeholder="Например: 19.05.2026 или 19052026" autocomplete="off">
+                    <div class="calendar-btn" title="Выбрать через календарь">
+                        📅
+                        <input type="date" id="stopDateNative">
                     </div>
                 </div>
 
@@ -80,7 +81,7 @@
                     </div>
                 </div>
 
-                <label>Скриншот (необязательно, обрежется автоматически):</label>
+                <label>Скриншот (обрежется автоматически):</label>
                 <input type="file" id="imageInput" accept="image/*">
 
                 <div class="checkbox-group">
