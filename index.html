@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>PoGo Открытки</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header>
+        <h1>Учет открыток PoGo</h1>
+    </header>
+
+    <main>
+        <section class="upload-section">
+            <h2>Добавить открытку</h2>
+            <form id="uploadForm">
+                <input type="text" id="stopName" placeholder="Название покестопа (необязательно)" autocomplete="off">
+                
+                <div class="file-input-wrapper">
+                    <button type="button" class="btn-select-file">Выбрать скриншот</button>
+                    <input type="file" id="imageInput" accept="image/*" required>
+                </div>
+                <div id="fileNameDisplay">Файл не выбран</div>
+
+                <div class="checkbox-group">
+                    <label><input type="checkbox" id="chkAlbum"> Мой альбом</label>
+                    <label><input type="checkbox" id="chkFriend1"> Друг 1</label>
+                    <label><input type="checkbox" id="chkFriend2"> Друг 2</label>
+                </div>
+
+                <button type="submit" id="submitBtn" class="btn-submit">Загрузить</button>
+            </form>
+            <div id="loadingIndicator" class="hidden">Загрузка в облако... Пожалуйста, подождите.</div>
+        </section>
+
+        <section class="gallery-section">
+            <h2>База открыток</h2>
+            <div id="galleryGrid" class="gallery-grid">
+                </div>
+        </section>
+    </main>
+
+    <script type="module" src="app.js"></script>
+</body>
+</html>
