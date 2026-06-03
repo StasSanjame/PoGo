@@ -194,7 +194,7 @@ async function cropImageForOCR(file) {
 // === ИНТЕРФЕЙС ===
 function resetAllFilters() {
     searchInput.value = '';
-    clearSearchBtn.style.display = 'none';
+    clearSearchBtn.classList.add('hidden');
     sortSelect.value = 'dateDesc';
     filterCountry.value = 'all';
     filterRegion.value = 'all';
@@ -215,12 +215,17 @@ window.addEventListener('scroll', () => {
 btnScrollTop.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
 
 searchInput.addEventListener('input', (e) => {
-    clearSearchBtn.style.display = e.target.value.length > 0 ? 'flex' : 'none';
+    if (e.target.value.length > 0) {
+        clearSearchBtn.classList.remove('hidden');
+    } else {
+        clearSearchBtn.classList.add('hidden');
+    }
     renderGallery();
 });
+
 clearSearchBtn.addEventListener('click', () => {
     searchInput.value = '';
-    clearSearchBtn.style.display = 'none';
+    clearSearchBtn.classList.add('hidden');
     renderGallery();
 });
 
@@ -297,24 +302,37 @@ document.getElementById('imageInput').addEventListener('change', async (e) => {
     }
 });
 
+// Функция нормализации текста (убирает пробелы, тире, спецсимволы и акценты)
+function normalizeText(str) {
+    if (!str) return "";
+    return str
+        .normalize("NFD")                 // Разбивает спецсимволы (напр. 'à' -> 'a' + '`')
+        .replace(/[\u0300-\u036f]/g, "")  // Удаляет "хвостики" и акценты
+        .replace(/[^a-zа-яё0-9]/gi, "")   // Удаляет ВСЁ, кроме английских/русских букв и цифр
+        .toLowerCase();                   // Переводит в нижний регистр
+}
+
 function checkDuplicate(ignoreId = null) {
-    const title = document.getElementById('stopName').value.trim().toLowerCase();
-    const country = document.getElementById('stopCountry').value.trim().toLowerCase();
-    const region = document.getElementById('stopRegion').value.trim().toLowerCase();
-    const city = document.getElementById('stopCity').value.trim().toLowerCase();
+    const rawTitle = document.getElementById('stopName').value;
+    const normTitle = normalizeText(rawTitle);
+    const normCountry = normalizeText(document.getElementById('stopCountry').value);
+    const normRegion = normalizeText(document.getElementById('stopRegion').value);
+    const normCity = normalizeText(document.getElementById('stopCity').value);
     const warningBox = document.getElementById('duplicateWarning');
 
-    if (!title) {
+    // Если поле названия пустое, скрываем предупреждение
+    if (!normTitle) {
         warningBox.classList.add('hidden');
         return;
     }
 
+    // Сравниваем только нормализованные строки
     const isDuplicate = allCards.some(card => 
         card.id !== ignoreId &&
-        (card.name || '').toLowerCase() === title &&
-        (card.country || '').toLowerCase() === country &&
-        (card.region || '').toLowerCase() === region &&
-        (card.city || '').toLowerCase() === city
+        normalizeText(card.name) === normTitle &&
+        normalizeText(card.country) === normCountry &&
+        normalizeText(card.region) === normRegion &&
+        normalizeText(card.city) === normCity
     );
 
     if (isDuplicate) {
@@ -322,8 +340,8 @@ function checkDuplicate(ignoreId = null) {
         document.getElementById('viewDuplicateLink').onclick = (e) => {
             e.preventDefault();
             addModal.classList.add('hidden');
-            searchInput.value = document.getElementById('stopName').value;
-            clearSearchBtn.style.display = 'flex';
+            searchInput.value = rawTitle.trim(); // Вставляем оригинальное название в поиск
+            clearSearchBtn.classList.remove('hidden'); // Показываем крестик
             renderGallery();
         };
     } else {
