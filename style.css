@@ -192,6 +192,6 @@ input[type="text"]:focus { border-color: var(--btn-primary); }
 .hidden { display: none !important; }
 
 input.auto-filled {
-    color: #fde047 !important; /* Желтый цвет текста */
+    color: #fff59d !important; /* Желтый цвет текста */
     font-weight: 600;
 }
