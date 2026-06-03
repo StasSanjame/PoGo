@@ -134,11 +134,14 @@ body.is-admin .guest-only { display: none !important; }
 @media (max-width: 768px) {
     .pc-only-inline { display: none !important; }
     body.is-admin .admin-only.pc-only-inline { display: none !important; }
-    .mobile-only { display: flex !important; }
+    
+    /* ИСПРАВЛЕНИЕ: показываем мобильные элементы, ТОЛЬКО если они не для админа */
+    .mobile-only:not(.admin-only) { display: flex !important; }
+    
     .mobile-text { display: inline !important; }
     .pc-text { display: none !important; }
     
-    /* Возвращаем плюсик на мобилках */
+    /* Показываем плюсик на мобилках ТОЛЬКО авторизованным */
     body.is-admin .admin-only.mobile-only { display: flex !important; }
 
     .top-bar { padding: 10px; gap: 8px; }
