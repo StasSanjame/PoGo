@@ -234,12 +234,86 @@ function openAddModal() {
     document.querySelectorAll('.track-input').forEach(input => input.classList.remove('auto-filled'));
     document.getElementById('duplicateWarning').classList.add('hidden');
     document.getElementById('ocrLimitWarning').classList.add('hidden');
+    
+    // Сбрасываем текст Drag&Drop и статус OCR
+    document.getElementById('dropZoneText').textContent = "Нажмите или перетащите скриншот сюда";
+    document.getElementById('ocrStatus').classList.add('hidden');
+    
+    // Удаляем картинку дебаггера, если она осталась от прошлой открытки
+    const debugImg = document.getElementById('ocrDebugPreview');
+    if (debugImg) debugImg.remove();
+    
     currentCroppedBlob = null;
     addModal.classList.remove('hidden');
 }
 btnOpenAddModal.addEventListener('click', openAddModal);
 btnOpenAddModalMobile.addEventListener('click', openAddModal);
 btnCloseAddModal.addEventListener('click', () => addModal.classList.add('hidden'));
+
+// === ВИЗУАЛ DRAG & DROP ===
+const dropZone = document.getElementById('dropZone');
+const dropZoneText = document.getElementById('dropZoneText');
+const imageInput = document.getElementById('imageInput');
+const ocrStatus = document.getElementById('ocrStatus');
+
+imageInput.addEventListener('dragenter', () => dropZone.classList.add('dragover'));
+imageInput.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+imageInput.addEventListener('drop', () => dropZone.classList.remove('dragover'));
+
+// === ОБРАБОТКА ЗАГРУЗКИ И OCR ===
+imageInput.addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+    if (!file) {
+        dropZoneText.textContent = "Нажмите или перетащите скриншот сюда";
+        return;
+    }
+
+    // Показываем имя файла и запускаем индикатор прямо под ним
+    dropZoneText.textContent = `Выбран файл: ${file.name}`;
+    document.getElementById('ocrLimitWarning').classList.add('hidden');
+    
+    ocrStatus.textContent = "⏳ Идет распознавание текста...";
+    ocrStatus.style.color = "#60a5fa"; // Голубой цвет загрузки
+    ocrStatus.classList.remove('hidden');
+    
+    document.getElementById('submitBtn').disabled = true;
+
+    try {
+        const { blob } = await cropImage(file);
+        currentCroppedBlob = blob;
+
+        const ocrBase64 = await cropImageForOCR(file);
+
+        const recognizeText = httpsCallable(functions, 'recognizePostcardText');
+        const response = await recognizeText({ image: ocrBase64 });
+        const data = response.data;
+
+        if (data.limitExceeded) {
+            document.getElementById('ocrLimitWarning').classList.remove('hidden');
+            ocrStatus.classList.add('hidden');
+        } else if (data.success) {
+            fillInputAndHighlight('stopName', data.title);
+            fillInputAndHighlight('stopCountry', data.country);
+            fillInputAndHighlight('stopRegion', data.region);
+            fillInputAndHighlight('stopCity', data.city);
+            checkDuplicate();
+            
+            ocrStatus.textContent = "✅ Текст успешно распознан!";
+            ocrStatus.style.color = "#4ade80"; // Зеленый цвет успеха
+        } else {
+            ocrStatus.textContent = "❌ Ошибка распознавания: " + data.error;
+            ocrStatus.style.color = "#f87171"; // Красный цвет ошибки
+        }
+    } catch (error) {
+        console.error("Критическая ошибка вызова функции OCR:", error);
+        ocrStatus.textContent = "❌ Сбой подключения к ИИ";
+        ocrStatus.style.color = "#f87171";
+    } finally {
+        // Убираем старый текстовый индикатор с кнопки Submit, если он был
+        document.getElementById('loadingIndicator').classList.add('hidden');
+        document.getElementById('submitBtn').disabled = false;
+    }
+});
 
 // === ЛОГИКА OCR И ДУБЛИКАТОВ ===
 let currentCroppedBlob = null;
