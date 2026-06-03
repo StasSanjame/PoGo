@@ -87,7 +87,14 @@
             <form id="uploadForm">
                 
                 <label>Скриншот:</label>
-                <input type="file" id="imageInput" accept="image/*">
+                
+                <div id="dropZone" class="drop-zone">
+                    <span id="dropZoneText">Нажмите или перетащите скриншот сюда</span>
+                    <input type="file" id="imageInput" accept="image/*" class="file-input-hidden">
+                </div>
+                
+                <div id="ocrStatus" class="hidden" style="margin-top: 5px; font-weight: 600; font-size: 0.9rem;"></div>
+                
                 <div id="ocrLimitWarning" class="warning-text hidden">Лимит авто-распознавания текста на сегодня исчерпан. Поля нужно заполнить вручную.</div>
                 
                 <label>Название покестопа (обязательно):</label>
