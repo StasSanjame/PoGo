@@ -144,6 +144,30 @@ async function cropImage(file) {
     });
 }
 
+async function cropImageForOCR(file) {
+    return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            
+            // БЕРЕМ ТОЛЬКО НИЖНИЕ 40% ЭКРАНА (отсекаем саму картинку открытки)
+            const startY = img.height * 0.60;
+            const cropHeight = img.height * 0.40;
+            
+            canvas.width = img.width; 
+            canvas.height = cropHeight;
+            
+            ctx.drawImage(img, 0, startY, img.width, cropHeight, 0, 0, canvas.width, canvas.height);
+            
+            const base64 = canvas.toDataURL('image/jpeg').split(',')[1];
+            resolve(base64);
+        };
+        img.onerror = reject;
+        img.src = URL.createObjectURL(file);
+    });
+}
+
 // === ИНТЕРФЕЙС ===
 function resetAllFilters() {
     searchInput.value = '';
@@ -217,11 +241,16 @@ document.getElementById('imageInput').addEventListener('change', async (e) => {
     document.getElementById('submitBtn').disabled = true;
 
     try {
-        const { blob, base64 } = await cropImage(file);
+        // 1. Делаем кроп для сохранения в галерею базы данных
+        const { blob } = await cropImage(file);
         currentCroppedBlob = blob;
 
+        // 2. Делаем специальный "нижний" кроп для отправки в Google Vision
+        const ocrBase64 = await cropImageForOCR(file);
+
+        // 3. Отправляем обрезок в облако
         const recognizeText = httpsCallable(functions, 'recognizePostcardText');
-        const response = await recognizeText({ image: base64 });
+        const response = await recognizeText({ image: ocrBase64 });
         const data = response.data;
 
         if (data.limitExceeded) {
