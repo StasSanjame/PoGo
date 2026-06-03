@@ -198,3 +198,32 @@ input.auto-filled {
     color: #fff59d !important; /* Желтый цвет текста */
     font-weight: 600;
 }
+
+/* Стили для зоны Drag & Drop */
+.drop-zone {
+    width: 100%;
+    padding: 25px 15px;
+    border: 2px dashed var(--border-color);
+    border-radius: 6px;
+    text-align: center;
+    color: var(--text-muted);
+    position: relative;
+    background: var(--bg-main);
+    transition: 0.2s;
+    box-sizing: border-box;
+    margin-bottom: 5px;
+    font-size: 0.95rem;
+}
+.drop-zone:hover, .drop-zone.dragover {
+    background: rgba(21, 94, 239, 0.1);
+    border-color: var(--btn-primary);
+    color: white;
+}
+.file-input-hidden {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    opacity: 0; /* Делаем инпут невидимым, но он всё еще кликабелен и принимает файлы */
+    cursor: pointer;
+    z-index: 2;
+}
