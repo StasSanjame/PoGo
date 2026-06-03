@@ -150,12 +150,14 @@ async function cropImageForOCR(file) {
         img.onload = () => {
             const canvas = document.createElement('canvas');
             const ctx = canvas.getContext('2d');
-            
+
+            const W = img.width;
+            const H = img.height;
             // Точные координаты горизонтальной текстовой плашки (на основе IMG_5890.jpg)
-            const cropX = img.width * 0.48;       // Пропускаем левую половину с фото открытки
-            const cropY = img.height * 0.35;      // Верхняя граница белого прямоугольника
-            const cropWidth = img.width * 0.38;   // Текстовая зона до правого края открытки
-            const cropHeight = img.height * 0.20; // Высота текстового блока карточки
+            const cropX = img.width * 0.48;        // Пропускаем левую половину с фото открытки
+            const cropY = (H * 0.35) + 20;         // Верхняя граница белого прямоугольника
+            const cropWidth = (W * 0.38) + 6;      // Текстовая зона до правого края открытки
+            const cropHeight = (H * 0.20) - 24;    // Высота текстового блока карточки
             
             canvas.width = cropWidth;
             canvas.height = cropHeight;
