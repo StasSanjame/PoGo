@@ -17,7 +17,7 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const storage = getStorage(app);
 const auth = getAuth(app);
-const functions = getFunctions(app); // Инициализация функций
+const functions = getFunctions(app);
 const provider = new GoogleAuthProvider();
 
 const galleryGrid = document.getElementById('galleryGrid');
@@ -119,7 +119,6 @@ bindCombobox(document.getElementById('comboCountryAdd'), () => [...new Set(allCa
 bindCombobox(document.getElementById('comboCityAdd'), () => [...new Set(allCards.map(c => c.city).filter(Boolean))].sort());
 bindCombobox(document.getElementById('comboRegionAdd'), () => [...new Set(allCards.map(c => c.region).filter(Boolean))].sort());
 
-// --- НОВАЯ ОБРЕЗКА (Соотношение 3:2 по ширине) ---
 async function cropImage(file) {
     return new Promise((resolve, reject) => {
         const img = new Image();
@@ -168,7 +167,6 @@ window.addEventListener('scroll', () => {
 });
 btnScrollTop.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
 
-// Логика крестика в поиске
 searchInput.addEventListener('input', (e) => {
     clearSearchBtn.style.display = e.target.value.length > 0 ? 'flex' : 'none';
     renderGallery();
@@ -179,7 +177,6 @@ clearSearchBtn.addEventListener('click', () => {
     renderGallery();
 });
 
-// Открытие модального окна добавления
 function openAddModal() {
     uploadForm.reset();
     document.querySelectorAll('.track-input').forEach(input => input.classList.remove('auto-filled'));
@@ -203,7 +200,6 @@ function fillInputAndHighlight(inputId, text) {
     }
 }
 
-// Снятие желтого цвета при ручном редактировании
 document.querySelectorAll('.track-input').forEach(input => {
     input.addEventListener('input', (e) => {
         e.target.classList.remove('auto-filled');
@@ -236,9 +232,12 @@ document.getElementById('imageInput').addEventListener('change', async (e) => {
             fillInputAndHighlight('stopRegion', data.region);
             fillInputAndHighlight('stopCity', data.city);
             checkDuplicate();
+        } else {
+            alert("Ошибка распознавания: " + data.error);
         }
     } catch (error) {
-        console.error("Ошибка OCR:", error);
+        console.error("Критическая ошибка вызова функции OCR:", error);
+        alert("Сбой подключения к функции OCR. Проверь консоль разработчика (F12) для деталей: " + error.message);
     } finally {
         document.getElementById('loadingIndicator').classList.add('hidden');
         document.getElementById('loadingIndicator').textContent = "Обработка и сохранение...";
@@ -374,7 +373,6 @@ function renderGallery() {
     if (filterRegion.value !== 'all') filtered = filtered.filter(c => c.region === filterRegion.value);
     if (filterCity.value !== 'all') filtered = filtered.filter(c => c.city === filterCity.value);
 
-    // Сортировка по дате добавления (используем системное время Firestore)
     const sortVal = sortSelect.value;
     filtered.sort((a, b) => {
         if (sortVal === 'dateDesc') return (b.createdAt?.toMillis() || 0) - (a.createdAt?.toMillis() || 0);
@@ -387,8 +385,13 @@ function renderGallery() {
         return 0;
     });
 
-    filterCounter.textContent = `${filtered.length} открыток`;
-    filterCounter.classList.remove('hidden');
+    // Изменение логики счетчика открыток
+    if (filtered.length < allCards.length) {
+        filterCounter.textContent = `Показано: ${filtered.length} из ${allCards.length}`;
+        filterCounter.classList.remove('hidden');
+    } else {
+        filterCounter.classList.add('hidden');
+    }
 
     galleryGrid.innerHTML = ''; 
     filtered.forEach(data => galleryGrid.appendChild(data.node));
@@ -399,14 +402,12 @@ filterCountry.addEventListener('change', renderGallery);
 filterRegion.addEventListener('change', renderGallery);
 filterCity.addEventListener('change', renderGallery);
 
-// === ВЬЮШКИ КАРТОЧЕК ===
 function createCardReadView(data) {
     const card = document.createElement('div'); card.className = 'card';
     const imgHtml = data.imageUrl ? `<img src="${data.imageUrl}" loading="lazy">` : ``;
     const locArr = [data.country, data.region, data.city].filter(Boolean);
     const locText = locArr.length > 0 ? locArr.join(', ') : "Локация не указана";
     
-    // Везде показываем наличие
     card.innerHTML = `
         <button class="btn-card-edit-pencil admin-only" title="Редактировать">✏️</button>
         <div class="card-img-wrapper">${imgHtml}</div>
@@ -428,7 +429,6 @@ function createCardEditView(data) {
     const card = document.createElement('div'); card.className = 'card';
     card.style.border = "1px solid var(--btn-primary)";
     
-    // Форма редактирования (без вызова OCR)
     card.innerHTML = `
         <div class="card-content" style="padding-top: 10px;">
             <label>Заменить скриншот:</label>
