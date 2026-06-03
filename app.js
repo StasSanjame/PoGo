@@ -151,14 +151,32 @@ async function cropImageForOCR(file) {
             const canvas = document.createElement('canvas');
             const ctx = canvas.getContext('2d');
             
-            // БЕРЕМ ТОЛЬКО НИЖНИЕ 40% ЭКРАНА (отсекаем саму картинку открытки)
-            const startY = img.height * 0.60;
-            const cropHeight = img.height * 0.40;
+            const W = img.width;
+            const H = img.height;
             
-            canvas.width = img.width; 
-            canvas.height = cropHeight;
+            // Пропорции карточки Pokémon GO относительно ширины экрана
+            const cardWidth = W * 0.82; 
+            const cardHeight = cardWidth * 1.30; // Высота всей открытки с фото
+            const cardTop = (H / 2) - (cardHeight / 2); // Центрирование по вертикали
             
-            ctx.drawImage(img, 0, startY, img.width, cropHeight, 0, 0, canvas.width, canvas.height);
+            // Текстовая плашка находится под квадратным фото (смещение на cardWidth)
+            const footerTop = cardTop + cardWidth;
+            const footerHeight = cardHeight - cardWidth;
+            
+            // Координаты текстовой зоны (смещаемся вправо на 32%, отсекая круглую иконку)
+            const cropX = W * 0.32;
+            const cropY = footerTop;
+            const cropWidth = W * 0.56; // До правого края открытки
+            const cropHeightTarget = footerHeight;
+            
+            canvas.width = cropWidth;
+            canvas.height = cropHeightTarget;
+            
+            ctx.drawImage(
+                img, 
+                cropX, cropY, cropWidth, cropHeightTarget, // Откуда вырезаем
+                0, 0, cropWidth, cropHeightTarget          // Куда вставляем
+            );
             
             const base64 = canvas.toDataURL('image/jpeg').split(',')[1];
             resolve(base64);
