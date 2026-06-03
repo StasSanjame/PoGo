@@ -2,8 +2,8 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
 import { getFirestore, collection, addDoc, onSnapshot, query, updateDoc, doc, deleteDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
 import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-functions.js";
 
-// ==========================================
 const firebaseConfig = {
     apiKey: "AIzaSyBlFUq_" + "oLSJbPSPi5VcidO_Aat03NrbMl4",
     authDomain: "pogopostcards-bfed2.firebaseapp.com",
@@ -12,47 +12,40 @@ const firebaseConfig = {
     messagingSenderId: "766118500807",
     appId: "1:766118500807:web:4b0aea05ea88ae8f7061e2"
 };
-// ==========================================
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const storage = getStorage(app);
 const auth = getAuth(app);
+const functions = getFunctions(app); // Инициализация функций
 const provider = new GoogleAuthProvider();
 
 const galleryGrid = document.getElementById('galleryGrid');
 const searchInput = document.getElementById('searchInput');
+const clearSearchBtn = document.getElementById('clearSearchBtn');
 const controlsRight = document.getElementById('controlsRight');
 const filterCounter = document.getElementById('filterCounter');
 
 const sortSelect = document.getElementById('sortSelect');
-const filterStatus = document.getElementById('filterStatus');
 const filterCountry = document.getElementById('filterCountry');
 const filterRegion = document.getElementById('filterRegion');
 const filterCity = document.getElementById('filterCity');
 
-const directionSelectPC = document.getElementById('directionSelectPC');
-const directionSelectMobile = document.getElementById('directionSelectMobile');
-
 const addModal = document.getElementById('addModal');
 const btnOpenAddModal = document.getElementById('btnOpenAddModal');
+const btnOpenAddModalMobile = document.getElementById('btnOpenAddModalMobile');
 const btnCloseAddModal = document.getElementById('btnCloseAddModal');
 const uploadForm = document.getElementById('uploadForm');
-const stopDirection = document.getElementById('stopDirection');
-const addRecipientsGroup = document.getElementById('addRecipientsGroup');
 
 const btnOpenFilters = document.getElementById('btnOpenFilters');
 const btnCloseFilters = document.getElementById('btnCloseFilters');
 const btnApplyFilters = document.getElementById('btnApplyFilters');
 const btnScrollTop = document.getElementById('btnScrollTop');
-
-// Авторизация
 const btnLogin = document.getElementById('btnLogin');
 
 let allCards = [];
-let currentDirection = 'from_me';
 
-// === ЛОГИКА АВТОРИЗАЦИИ GOOGLE ===
+// === АВТОРИЗАЦИЯ ===
 onAuthStateChanged(auth, (user) => {
     if (user) {
         document.body.classList.add('is-admin');
@@ -62,14 +55,9 @@ onAuthStateChanged(auth, (user) => {
 });
 
 btnLogin.addEventListener('click', () => {
-    signInWithPopup(auth, provider)
-        .then(() => {
-            alert("Вход выполнен!");
-        })
-        .catch((error) => console.error("Ошибка авторизации:", error));
+    signInWithPopup(auth, provider).then(() => alert("Вход выполнен!")).catch(console.error);
 });
 
-// Навешиваем событие выхода на все кнопки-триггеры (для ПК и для мобильных) с подтверждением
 document.querySelectorAll('.btn-logout-trigger').forEach(btn => {
     btn.addEventListener('click', () => {
         if (confirm("Вы действительно хотите выйти из аккаунта?")) {
@@ -78,15 +66,7 @@ document.querySelectorAll('.btn-logout-trigger').forEach(btn => {
     });
 });
 
-function getPostcardWord(count) {
-    const mod10 = count % 10;
-    const mod100 = count % 100;
-    if (mod100 >= 11 && mod100 <= 19) return "открыток";
-    if (mod10 === 1) return "открытка";
-    if (mod10 >= 2 && mod10 <= 4) return "открытки";
-    return "открыток";
-}
-
+// === УТИЛИТЫ ===
 function bindCombobox(containerEl, getItemsList) {
     const input = containerEl.querySelector('input');
     const arrow = containerEl.querySelector('.combobox-arrow');
@@ -139,116 +119,44 @@ bindCombobox(document.getElementById('comboCountryAdd'), () => [...new Set(allCa
 bindCombobox(document.getElementById('comboCityAdd'), () => [...new Set(allCards.map(c => c.city).filter(Boolean))].sort());
 bindCombobox(document.getElementById('comboRegionAdd'), () => [...new Set(allCards.map(c => c.region).filter(Boolean))].sort());
 
-stopDirection.addEventListener('change', () => {
-    if (stopDirection.value === 'to_me') addRecipientsGroup.classList.add('hidden');
-    else addRecipientsGroup.classList.remove('hidden');
-});
-
+// --- НОВАЯ ОБРЕЗКА (Соотношение 3:2 по ширине) ---
 async function cropImage(file) {
     return new Promise((resolve, reject) => {
         const img = new Image();
         img.onload = () => {
             const canvas = document.createElement('canvas');
             const ctx = canvas.getContext('2d');
-            const originalHeight = 2532;
-            const topCropRatio = 601 / originalHeight;
-            const targetHeightRatio = 1105 / originalHeight;
-            const topCrop = img.height * topCropRatio;
-            const targetHeight = img.height * targetHeightRatio;
+            const topCropRatio = 0.58547;
+            const targetHeightRatio = 0.66667; 
+            
+            const topCrop = img.width * topCropRatio;
+            const targetHeight = img.width * targetHeightRatio;
 
-            canvas.width = img.width; canvas.height = targetHeight;
+            canvas.width = img.width; 
+            canvas.height = targetHeight;
+            
             ctx.drawImage(img, 0, topCrop, img.width, targetHeight, 0, 0, canvas.width, canvas.height);
-            canvas.toBlob((blob) => resolve(blob), file.type || 'image/jpeg', 0.9);
+            
+            const base64 = canvas.toDataURL('image/jpeg').split(',')[1];
+            canvas.toBlob((blob) => resolve({ blob, base64 }), file.type || 'image/jpeg', 0.9);
         };
         img.onerror = reject;
         img.src = URL.createObjectURL(file);
     });
 }
 
-function validateAndParseDate(str) {
-    if (!str) return ""; 
-    if (!/^\d{8}$/.test(str)) {
-        alert("Ошибка: Дата должна состоять ровно из 8 цифр в формате ДДММГГГГ (например, 19052026) без точек и пробелов.");
-        return null;
-    }
-    const day = parseInt(str.substring(0, 2), 10);
-    const month = parseInt(str.substring(2, 4), 10);
-    const year = parseInt(str.substring(4, 8), 10);
-
-    const dateObj = new Date(year, month - 1, day);
-    if (dateObj.getFullYear() === year && dateObj.getMonth() === month - 1 && dateObj.getDate() === day) {
-        return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-    } else {
-        alert(`Ошибка: Даты ${day}.${month}.${year} не существует в календаре.`);
-        return null;
-    }
-}
-
-function formatToUserText(dbStr) {
-    if (!dbStr) return "";
-    const parts = dbStr.split('-');
-    if (parts.length === 3) return `${parts[2]}${parts[1]}${parts[0]}`;
-    return dbStr;
-}
-
-function formatToDisplay(dbStr) {
-    if (!dbStr) return "Дата не указана";
-    const parts = dbStr.split('-');
-    if (parts.length === 3) return `${parts[2]}.${parts[1]}.${parts[0]}`;
-    return dbStr;
-}
-
-function setupDateInputs(textInput, nativeInput, calendarBtn) {
-    calendarBtn.addEventListener('click', (e) => {
-        if (window.innerWidth > 768) {
-            e.preventDefault();
-            try { nativeInput.showPicker(); } catch (err) {}
-        }
-    });
-
-    nativeInput.addEventListener('change', (e) => {
-        if (e.target.value) {
-            const parts = e.target.value.split('-'); 
-            textInput.value = `${parts[2]}${parts[1]}${parts[0]}`;
-        }
-    });
-}
-
-setupDateInputs(document.getElementById('stopDateText'), document.getElementById('stopDateNative'), document.getElementById('btnDateNative'));
-
-function handleDirectionChange(val) {
-    currentDirection = val;
-    directionSelectPC.value = val;
-    directionSelectMobile.value = val;
-    
-    if (currentDirection === 'to_me') filterStatus.classList.add('hidden');
-    else filterStatus.classList.remove('hidden');
-
-    renderGallery();
-}
-directionSelectPC.addEventListener('change', (e) => handleDirectionChange(e.target.value));
-directionSelectMobile.addEventListener('change', (e) => handleDirectionChange(e.target.value));
-
+// === ИНТЕРФЕЙС ===
 function resetAllFilters() {
     searchInput.value = '';
+    clearSearchBtn.style.display = 'none';
     sortSelect.value = 'dateDesc';
-    filterStatus.value = 'all';
     filterCountry.value = 'all';
     filterRegion.value = 'all';
     filterCity.value = 'all';
-    
-    currentDirection = 'from_me';
-    directionSelectPC.value = 'from_me';
-    directionSelectMobile.value = 'from_me';
-    filterStatus.classList.remove('hidden'); 
-    
     renderGallery();
 }
 document.getElementById('btnResetPC').addEventListener('click', resetAllFilters);
-document.getElementById('btnResetMobile').addEventListener('click', () => {
-    resetAllFilters();
-    controlsRight.classList.remove('open');
-});
+document.getElementById('btnResetMobile').addEventListener('click', () => { resetAllFilters(); controlsRight.classList.remove('open'); });
 
 btnOpenFilters.addEventListener('click', () => controlsRight.classList.add('open'));
 btnCloseFilters.addEventListener('click', () => controlsRight.classList.remove('open'));
@@ -260,46 +168,142 @@ window.addEventListener('scroll', () => {
 });
 btnScrollTop.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
 
-btnOpenAddModal.addEventListener('click', () => {
-    uploadForm.reset();
-    addRecipientsGroup.classList.remove('hidden');
-    addModal.classList.remove('hidden');
+// Логика крестика в поиске
+searchInput.addEventListener('input', (e) => {
+    clearSearchBtn.style.display = e.target.value.length > 0 ? 'flex' : 'none';
+    renderGallery();
 });
+clearSearchBtn.addEventListener('click', () => {
+    searchInput.value = '';
+    clearSearchBtn.style.display = 'none';
+    renderGallery();
+});
+
+// Открытие модального окна добавления
+function openAddModal() {
+    uploadForm.reset();
+    document.querySelectorAll('.track-input').forEach(input => input.classList.remove('auto-filled'));
+    document.getElementById('duplicateWarning').classList.add('hidden');
+    document.getElementById('ocrLimitWarning').classList.add('hidden');
+    currentCroppedBlob = null;
+    addModal.classList.remove('hidden');
+}
+btnOpenAddModal.addEventListener('click', openAddModal);
+btnOpenAddModalMobile.addEventListener('click', openAddModal);
 btnCloseAddModal.addEventListener('click', () => addModal.classList.add('hidden'));
 
+// === ЛОГИКА OCR И ДУБЛИКАТОВ ===
+let currentCroppedBlob = null;
+
+function fillInputAndHighlight(inputId, text) {
+    const input = document.getElementById(inputId);
+    if (text) {
+        input.value = text;
+        input.classList.add('auto-filled');
+    }
+}
+
+// Снятие желтого цвета при ручном редактировании
+document.querySelectorAll('.track-input').forEach(input => {
+    input.addEventListener('input', (e) => {
+        e.target.classList.remove('auto-filled');
+        checkDuplicate();
+    });
+});
+
+document.getElementById('imageInput').addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    document.getElementById('ocrLimitWarning').classList.add('hidden');
+    document.getElementById('loadingIndicator').textContent = "Распознавание текста...";
+    document.getElementById('loadingIndicator').classList.remove('hidden');
+    document.getElementById('submitBtn').disabled = true;
+
+    try {
+        const { blob, base64 } = await cropImage(file);
+        currentCroppedBlob = blob;
+
+        const recognizeText = httpsCallable(functions, 'recognizePostcardText');
+        const response = await recognizeText({ image: base64 });
+        const data = response.data;
+
+        if (data.limitExceeded) {
+            document.getElementById('ocrLimitWarning').classList.remove('hidden');
+        } else if (data.success) {
+            fillInputAndHighlight('stopName', data.title);
+            fillInputAndHighlight('stopCountry', data.country);
+            fillInputAndHighlight('stopRegion', data.region);
+            fillInputAndHighlight('stopCity', data.city);
+            checkDuplicate();
+        }
+    } catch (error) {
+        console.error("Ошибка OCR:", error);
+    } finally {
+        document.getElementById('loadingIndicator').classList.add('hidden');
+        document.getElementById('loadingIndicator').textContent = "Обработка и сохранение...";
+        document.getElementById('submitBtn').disabled = false;
+    }
+});
+
+function checkDuplicate(ignoreId = null) {
+    const title = document.getElementById('stopName').value.trim().toLowerCase();
+    const country = document.getElementById('stopCountry').value.trim().toLowerCase();
+    const region = document.getElementById('stopRegion').value.trim().toLowerCase();
+    const city = document.getElementById('stopCity').value.trim().toLowerCase();
+    const warningBox = document.getElementById('duplicateWarning');
+
+    if (!title) {
+        warningBox.classList.add('hidden');
+        return;
+    }
+
+    const isDuplicate = allCards.some(card => 
+        card.id !== ignoreId &&
+        (card.name || '').toLowerCase() === title &&
+        (card.country || '').toLowerCase() === country &&
+        (card.region || '').toLowerCase() === region &&
+        (card.city || '').toLowerCase() === city
+    );
+
+    if (isDuplicate) {
+        warningBox.classList.remove('hidden');
+        document.getElementById('viewDuplicateLink').onclick = (e) => {
+            e.preventDefault();
+            addModal.classList.add('hidden');
+            searchInput.value = document.getElementById('stopName').value;
+            clearSearchBtn.style.display = 'flex';
+            renderGallery();
+        };
+    } else {
+        warningBox.classList.add('hidden');
+    }
+}
+
+// === СОХРАНЕНИЕ В FIRESTORE ===
 uploadForm.addEventListener('submit', async (e) => {
     e.preventDefault();
-    
-    const rawDateText = document.getElementById('stopDateText').value.trim();
-    const parsedDate = validateAndParseDate(rawDateText);
-    if (rawDateText && parsedDate === null) return;
-
     const btn = document.getElementById('submitBtn');
     const loading = document.getElementById('loadingIndicator');
     btn.disabled = true; loading.classList.remove('hidden');
 
     try {
-        const file = document.getElementById('imageInput').files[0];
         let imageUrl = null; let imagePath = null;
-        if (file) {
-            const croppedBlob = await cropImage(file);
-            imagePath = 'postcards/' + Date.now() + '_' + file.name;
+        if (currentCroppedBlob) {
+            imagePath = 'postcards/' + Date.now() + '_upload.jpg';
             const fileRef = ref(storage, imagePath);
-            await uploadBytes(fileRef, croppedBlob);
+            await uploadBytes(fileRef, currentCroppedBlob);
             imageUrl = await getDownloadURL(fileRef);
         }
 
-        const isToMe = stopDirection.value === 'to_me';
         const dataObj = {
             name: document.getElementById('stopName').value.trim(),
-            direction: stopDirection.value,
-            date: parsedDate,
             country: document.getElementById('stopCountry').value.trim(),
             region: document.getElementById('stopRegion').value.trim(),
             city: document.getElementById('stopCity').value.trim(),
-            album: isToMe ? false : document.getElementById('chkAlbum').checked,
-            friend1: isToMe ? false : document.getElementById('chkFriend1').checked,
-            friend2: isToMe ? false : document.getElementById('chkFriend2').checked,
+            sanjame: document.getElementById('chkSanjame').checked,
+            friend1: document.getElementById('chkFriend1').checked,
+            friend2: document.getElementById('chkFriend2').checked,
             imageUrl: imageUrl, imagePath: imagePath,
             createdAt: serverTimestamp()
         };
@@ -314,6 +318,7 @@ uploadForm.addEventListener('submit', async (e) => {
     }
 });
 
+// === ПОДГРУЗКА ИЗ FIRESTORE И РЕНДЕР ===
 onSnapshot(query(collection(db, "postcards")), (snapshot) => {
     snapshot.docChanges().forEach((change) => {
         if (change.type === "added") {
@@ -361,34 +366,19 @@ function populateSelect(sel, items, defText) {
 }
 
 function renderGallery() {
-    let categorized = allCards.filter(c => (c.direction || "from_me") === currentDirection);
-    const totalInCurrentCategory = categorized.length;
-
-    let filtered = [...categorized];
+    let filtered = [...allCards];
     const queryText = searchInput.value.toLowerCase();
     if (queryText) filtered = filtered.filter(c => (c.name || "").toLowerCase().includes(queryText));
-
-    if (currentDirection === 'from_me') {
-        const statusVal = filterStatus.value;
-        if (statusVal === 'completed') filtered = filtered.filter(c => c.album && c.friend1 && c.friend2);
-        else if (statusVal === 'missing') filtered = filtered.filter(c => !(c.album && c.friend1 && c.friend2));
-    }
 
     if (filterCountry.value !== 'all') filtered = filtered.filter(c => c.country === filterCountry.value);
     if (filterRegion.value !== 'all') filtered = filtered.filter(c => c.region === filterRegion.value);
     if (filterCity.value !== 'all') filtered = filtered.filter(c => c.city === filterCity.value);
 
-    if (currentDirection === 'from_me' && filtered.length < totalInCurrentCategory) {
-        filterCounter.textContent = `${filtered.length} ${getPostcardWord(filtered.length)}`;
-        filterCounter.classList.remove('hidden');
-    } else {
-        filterCounter.classList.add('hidden');
-    }
-
+    // Сортировка по дате добавления (используем системное время Firestore)
     const sortVal = sortSelect.value;
     filtered.sort((a, b) => {
-        if (sortVal === 'dateDesc') return (b.date || "").localeCompare(a.date || "") || (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0);
-        if (sortVal === 'dateAsc') return (a.date || "").localeCompare(b.date || "") || (a.createdAt?.seconds || 0) - (b.createdAt?.seconds || 0);
+        if (sortVal === 'dateDesc') return (b.createdAt?.toMillis() || 0) - (a.createdAt?.toMillis() || 0);
+        if (sortVal === 'dateAsc') return (a.createdAt?.toMillis() || 0) - (b.createdAt?.toMillis() || 0);
         if (sortVal === 'alphaAsc') return (a.name || "").localeCompare(b.name || "");
         if (sortVal === 'alphaDesc') return (b.name || "").localeCompare(a.name || "");
         if (sortVal === 'country') return (a.country || "").localeCompare(b.country || "");
@@ -397,41 +387,37 @@ function renderGallery() {
         return 0;
     });
 
+    filterCounter.textContent = `${filtered.length} открыток`;
+    filterCounter.classList.remove('hidden');
+
     galleryGrid.innerHTML = ''; 
     filtered.forEach(data => galleryGrid.appendChild(data.node));
 }
 
-searchInput.addEventListener('input', renderGallery);
 sortSelect.addEventListener('change', renderGallery);
-filterStatus.addEventListener('change', renderGallery);
 filterCountry.addEventListener('change', renderGallery);
 filterRegion.addEventListener('change', renderGallery);
 filterCity.addEventListener('change', renderGallery);
 
+// === ВЬЮШКИ КАРТОЧЕК ===
 function createCardReadView(data) {
     const card = document.createElement('div'); card.className = 'card';
     const imgHtml = data.imageUrl ? `<img src="${data.imageUrl}" loading="lazy">` : ``;
     const locArr = [data.country, data.region, data.city].filter(Boolean);
     const locText = locArr.length > 0 ? locArr.join(', ') : "Локация не указана";
     
-    const isToMe = data.direction === 'to_me';
-    const statusBlock = isToMe ? '' : `
-        <ul class="status-list">
-            <li>${data.album ? '✅' : '❌'} Альбом</li>
-            <li>${data.friend1 ? '✅' : '❌'} Tupra</li>
-            <li>${data.friend2 ? '✅' : '❌'} zxcCUMKILLER228pro</li>
-        </ul>
-    `;
-
+    // Везде показываем наличие
     card.innerHTML = `
         <button class="btn-card-edit-pencil admin-only" title="Редактировать">✏️</button>
         <div class="card-img-wrapper">${imgHtml}</div>
         <div class="card-content">
             <div class="card-title">${data.name || "Без названия"}</div>
-            <div class="card-location">
-                📅 ${formatToDisplay(data.date)}<br>📍 ${locText}
-            </div>
-            ${statusBlock}
+            <div class="card-location">📍 ${locText}</div>
+            <ul class="status-list">
+                <li>${data.sanjame || data.album ? '✅' : '❌'} Sanjame</li>
+                <li>${data.friend1 ? '✅' : '❌'} Tupra</li>
+                <li>${data.friend2 ? '✅' : '❌'} zxcCUMKILLER228pro</li>
+            </ul>
         </div>
     `;
     card.querySelector('.btn-card-edit-pencil').onclick = () => card.replaceWith(createCardEditView(data));
@@ -442,28 +428,13 @@ function createCardEditView(data) {
     const card = document.createElement('div'); card.className = 'card';
     card.style.border = "1px solid var(--btn-primary)";
     
-    const txtId = `editTxt_${data.id}`; const natId = `editNat_${data.id}`; const btnId = `btnEditDate_${data.id}`;
-    const dirId = `editDir_${data.id}`; const recGroupId = `editRecGroup_${data.id}`;
-    const isToMe = data.direction === 'to_me';
-
+    // Форма редактирования (без вызова OCR)
     card.innerHTML = `
         <div class="card-content" style="padding-top: 10px;">
-            <label>Название:</label><input type="text" class="edit-name" value="${data.name || ''}">
+            <label>Заменить скриншот:</label>
+            <input type="file" class="edit-img" accept="image/*" style="margin-bottom: 10px;">
             
-            <label>Тип открытки:</label>
-            <select id="${dirId}" style="width:100%; margin-bottom: 5px;">
-                <option value="from_me" ${!isToMe ? 'selected' : ''}>Я (Подарил)</option>
-                <option value="to_me" ${isToMe ? 'selected' : ''}>Мне (Получил)</option>
-            </select>
-
-            <label>Дата (8 цифр ДДММГГГГ):</label>
-            <div class="date-input-group" style="margin-bottom:15px;">
-                <input type="text" id="${txtId}" class="edit-date-text" value="${formatToUserText(data.date)}" placeholder="Например: 19052026" maxlength="8">
-                <div class="calendar-wrapper">
-                    <button type="button" class="calendar-btn" id="${btnId}">📅</button>
-                    <input type="date" id="${natId}" class="native-date-input">
-                </div>
-            </div>
+            <label>Название:</label><input type="text" class="edit-name" value="${data.name || ''}">
 
             <div class="form-row">
                 <div>
@@ -491,10 +462,9 @@ function createCardEditView(data) {
                 <div class="combobox-dropdown hidden"></div>
             </div>
             
-            <label>Заменить скриншот:</label><input type="file" class="edit-img" accept="image/*">
-            
-            <div id="${recGroupId}" class="checkbox-group ${isToMe ? 'hidden' : ''}">
-                <label><input type="checkbox" class="edit-album" ${data.album ? 'checked' : ''}> Альбом</label>
+            <label>Наличие у пользователей:</label>
+            <div class="checkbox-group">
+                <label><input type="checkbox" class="edit-sanjame" ${data.sanjame || data.album ? 'checked' : ''}> Sanjame</label>
                 <label><input type="checkbox" class="edit-f1" ${data.friend1 ? 'checked' : ''}> Tupra</label>
                 <label><input type="checkbox" class="edit-f2" ${data.friend2 ? 'checked' : ''}> zxcCUMKILLER228pro</label>
             </div>
@@ -506,28 +476,15 @@ function createCardEditView(data) {
     `;
 
     setTimeout(() => { 
-        setupDateInputs(document.getElementById(txtId), document.getElementById(natId), document.getElementById(btnId)); 
-        
         const combos = card.querySelectorAll('.custom-combobox');
         bindCombobox(combos[0], () => [...new Set(allCards.map(c => c.country).filter(Boolean))].sort());
         bindCombobox(combos[1], () => [...new Set(allCards.map(c => c.city).filter(Boolean))].sort());
         bindCombobox(combos[2], () => [...new Set(allCards.map(c => c.region).filter(Boolean))].sort());
-
-        const dirSelect = document.getElementById(dirId);
-        const recGroup = document.getElementById(recGroupId);
-        dirSelect.addEventListener('change', () => {
-            if (dirSelect.value === 'to_me') recGroup.classList.add('hidden');
-            else recGroup.classList.remove('hidden');
-        });
     }, 0);
 
     card.querySelector('.btn-cancel').onclick = () => card.replaceWith(data.node);
 
     card.querySelector('.btn-save').onclick = async () => {
-        const rawDateText = document.getElementById(txtId).value.trim();
-        const parsedDate = validateAndParseDate(rawDateText);
-        if (rawDateText && parsedDate === null) return;
-
         const btnSave = card.querySelector('.btn-save');
         btnSave.textContent = "Сохранение..."; btnSave.disabled = true;
 
@@ -536,27 +493,22 @@ function createCardEditView(data) {
             let newImageUrl = data.imageUrl; let newImagePath = data.imagePath;
 
             if (newFile) {
-                const croppedBlob = await cropImage(newFile);
+                const { blob } = await cropImage(newFile);
                 newImagePath = 'postcards/' + Date.now() + '_' + newFile.name;
                 const fileRef = ref(storage, newImagePath);
-                await uploadBytes(fileRef, croppedBlob);
+                await uploadBytes(fileRef, blob);
                 newImageUrl = await getDownloadURL(fileRef);
                 if (data.imagePath) await deleteObject(ref(storage, data.imagePath)).catch(() => {});
             }
 
-            const nextDir = document.getElementById(dirId).value;
-            const finalToMe = nextDir === 'to_me';
-
             const updatedData = {
                 name: card.querySelector('.edit-name').value.trim(),
-                direction: nextDir,
-                date: parsedDate,
                 country: card.querySelector('.edit-country').value.trim(),
                 region: card.querySelector('.edit-region').value.trim(),
                 city: card.querySelector('.edit-city').value.trim(),
-                album: finalToMe ? false : card.querySelector('.edit-album').checked,
-                friend1: finalToMe ? false : card.querySelector('.edit-f1').checked,
-                friend2: finalToMe ? false : card.querySelector('.edit-f2').checked,
+                sanjame: card.querySelector('.edit-sanjame').checked,
+                friend1: card.querySelector('.edit-f1').checked,
+                friend2: card.querySelector('.edit-f2').checked,
                 imageUrl: newImageUrl, imagePath: newImagePath
             };
             await updateDoc(doc(db, "postcards", data.id), updatedData);
