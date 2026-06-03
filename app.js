@@ -151,34 +151,37 @@ async function cropImageForOCR(file) {
             const canvas = document.createElement('canvas');
             const ctx = canvas.getContext('2d');
             
-            const W = img.width;
-            const H = img.height;
-            
-            // Пропорции карточки Pokémon GO относительно ширины экрана
-            const cardWidth = W * 0.82; 
-            const cardHeight = cardWidth * 1.30; // Высота всей открытки с фото
-            const cardTop = (H / 2) - (cardHeight / 2); // Центрирование по вертикали
-            
-            // Текстовая плашка находится под квадратным фото (смещение на cardWidth)
-            const footerTop = cardTop + cardWidth;
-            const footerHeight = cardHeight - cardWidth;
-            
-            // Координаты текстовой зоны (смещаемся вправо на 32%, отсекая круглую иконку)
-            const cropX = W * 0.32;
-            const cropY = footerTop;
-            const cropWidth = W * 0.56; // До правого края открытки
-            const cropHeightTarget = footerHeight;
+            // Точные координаты горизонтальной текстовой плашки (на основе IMG_5890.jpg)
+            const cropX = img.width * 0.48;       // Пропускаем левую половину с фото открытки
+            const cropY = img.height * 0.35;      // Верхняя граница белого прямоугольника
+            const cropWidth = img.width * 0.38;   // Текстовая зона до правого края открытки
+            const cropHeight = img.height * 0.20; // Высота текстового блока карточки
             
             canvas.width = cropWidth;
-            canvas.height = cropHeightTarget;
+            canvas.height = cropHeight;
             
             ctx.drawImage(
                 img, 
-                cropX, cropY, cropWidth, cropHeightTarget, // Откуда вырезаем
-                0, 0, cropWidth, cropHeightTarget          // Куда вставляем
+                cropX, cropY, cropWidth, cropHeight, // Откуда вырезаем
+                0, 0, cropWidth, cropHeight          // Куда вставляем
             );
             
             const base64 = canvas.toDataURL('image/jpeg').split(',')[1];
+            
+            // =========================================================
+            // ВРЕМЕННЫЙ ВИЗУАЛЬНЫЙ ДЕБАГГЕР (Потом можно будет удалить)
+            // =========================================================
+            let debugImg = document.getElementById('ocrDebugPreview');
+            if (!debugImg) {
+                debugImg = document.createElement('img');
+                debugImg.id = 'ocrDebugPreview';
+                debugImg.style = "display:block; margin:15px auto; border:3px dashed #fde047; max-width:100%; padding:5px; background:#000;";
+                // Вставляем превью сразу под индикатор загрузки текста в модалке
+                document.getElementById('loadingIndicator').after(debugImg);
+            }
+            debugImg.src = "data:image/jpeg;base64," + base64;
+            // =========================================================
+            
             resolve(base64);
         };
         img.onerror = reject;
