@@ -10,18 +10,15 @@
 
     <div class="top-bar">
         <div class="top-bar-main">
-            <!-- Кнопка Входа -->
             <button id="btnLogin" class="btn-primary guest-only">
                 <span class="pc-text">Авторизация</span>
                 <span class="mobile-text">Вход</span>
             </button>
 
-            <!-- ПК Кнопка добавления -->
             <button id="btnOpenAddModal" class="btn-primary admin-only pc-only-inline">
                 Добавить открытку
             </button>
             
-            <!-- Мобильная кнопка добавления (Плюсик) -->
             <button id="btnOpenAddModalMobile" class="mobile-btn admin-only mobile-only">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
                     <line x1="12" y1="5" x2="12" y2="19"></line>
@@ -29,21 +26,19 @@
                 </svg>
             </button>
             
-            <!-- Поиск с крестиком -->
             <div class="search-container">
                 <input type="text" id="searchInput" placeholder="Поиск" autocomplete="off">
                 <button id="clearSearchBtn" class="clear-search hidden">&times;</button>
             </div>
+
+            <button id="btnOpenFilters" class="mobile-btn mobile-only">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="3" y1="12" x2="21" y2="12"></line>
+                    <line x1="3" y1="6" x2="21" y2="6"></line>
+                    <line x1="3" y1="18" x2="21" y2="18"></line>
+                </svg>
+            </button>
         </div>
-        
-        <!-- Мобильная кнопка фильтров (Три полоски) -->
-        <button id="btnOpenFilters" class="mobile-btn mobile-only">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
-                <line x1="3" y1="12" x2="21" y2="12"></line>
-                <line x1="3" y1="6" x2="21" y2="6"></line>
-                <line x1="3" y1="18" x2="21" y2="18"></line>
-            </svg>
-        </button>
         
         <div id="controlsRight" class="controls-right">
             <div class="mobile-only modal-header">
@@ -83,7 +78,6 @@
 
     <button id="btnScrollTop" class="btn-scroll-top hidden"></button>
 
-    <!-- Модальное окно добавления -->
     <div id="addModal" class="modal-overlay hidden">
         <div class="modal-content">
             <div class="modal-header">
@@ -94,13 +88,11 @@
                 
                 <label>Скриншот:</label>
                 <input type="file" id="imageInput" accept="image/*">
-                <!-- Уведомление об исчерпании лимита -->
                 <div id="ocrLimitWarning" class="warning-text hidden">Лимит авто-распознавания текста на сегодня исчерпан. Поля нужно заполнить вручную.</div>
                 
                 <label>Название покестопа (обязательно):</label>
                 <input type="text" id="stopName" class="track-input" required autocomplete="off">
                 
-                <!-- Предупреждение о дубликате -->
                 <div id="duplicateWarning" class="warning-box hidden">
                     Такая открытка уже есть! <a href="#" id="viewDuplicateLink">Посмотреть её</a>
                 </div>
