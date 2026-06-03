@@ -8,33 +8,42 @@
 </head>
 <body>
 
-    <datalist id="countriesList"></datalist>
-    <datalist id="regionsList"></datalist>
-    <datalist id="citiesList"></datalist>
-
     <div class="top-bar">
         <div class="top-bar-main">
+            <!-- Кнопка Входа -->
             <button id="btnLogin" class="btn-primary guest-only">
                 <span class="pc-text">Авторизация</span>
                 <span class="mobile-text">Вход</span>
             </button>
 
-            <button id="btnOpenAddModal" class="btn-primary admin-only">
-                <span class="pc-text">Добавить открытку</span>
-                <span class="mobile-text">+</span>
+            <!-- ПК Кнопка добавления -->
+            <button id="btnOpenAddModal" class="btn-primary admin-only pc-only-inline">
+                Добавить открытку
             </button>
             
+            <!-- Мобильная кнопка добавления (Плюсик) -->
+            <button id="btnOpenAddModalMobile" class="mobile-btn admin-only mobile-only">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                </svg>
+            </button>
+            
+            <!-- Поиск с крестиком -->
             <div class="search-container">
                 <input type="text" id="searchInput" placeholder="Поиск" autocomplete="off">
+                <button id="clearSearchBtn" class="clear-search hidden">&times;</button>
             </div>
-
-            <select id="directionSelectPC" class="pc-only-inline select-direction">
-                <option value="from_me">Я</option>
-                <option value="to_me">Мне</option>
-            </select>
         </div>
         
-        <button id="btnOpenFilters" class="mobile-only btn-filter-trigger">↕️</button>
+        <!-- Мобильная кнопка фильтров (Три полоски) -->
+        <button id="btnOpenFilters" class="mobile-btn mobile-only">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="3" y1="12" x2="21" y2="12"></line>
+                <line x1="3" y1="6" x2="21" y2="6"></line>
+                <line x1="3" y1="18" x2="21" y2="18"></line>
+            </svg>
+        </button>
         
         <div id="controlsRight" class="controls-right">
             <div class="mobile-only modal-header">
@@ -43,8 +52,8 @@
             </div>
             
             <select id="sortSelect">
-                <option value="dateDesc">По дате (новые сверху)</option>
-                <option value="dateAsc">По дате (старые сверху)</option>
+                <option value="dateDesc">По дате добавления (новые сверху)</option>
+                <option value="dateAsc">По дате добавления (старые сверху)</option>
                 <option value="alphaAsc">По алфавиту (А-Я)</option>
                 <option value="alphaDesc">По алфавиту (Я-А)</option>
                 <option value="country">Группировка: Страна</option>
@@ -52,29 +61,16 @@
                 <option value="city">Группировка: Город</option>
             </select>
 
-            <select id="filterStatus">
-                <option value="all">Все открытки</option>
-                <option value="completed">У всех</option>
-                <option value="missing">Не у всех</option>
-            </select>
-
             <select id="filterCountry"><option value="all">Все страны</option></select>
             <select id="filterRegion"><option value="all">Все регионы</option></select>
             <select id="filterCity"><option value="all">Все города</option></select>
             
             <button id="btnResetPC" class="pc-only-inline btn-reset-clear">Сбросить</button>
-            
             <button id="btnLogoutPC" class="btn-logout pc-only-inline admin-only btn-logout-trigger" title="Выйти из режима редактирования">🚪</button>
             
             <div class="mobile-only mobile-direction-block">
-                <label>Тип открыток:</label>
-                <select id="directionSelectMobile" class="select-direction">
-                    <option value="from_me">Я</option>
-                    <option value="to_me">Мне</option>
-                </select>
                 <button id="btnApplyFilters" class="btn-submit" style="margin-top:15px;">Применить</button>
                 <button id="btnResetMobile" class="btn-cancel" style="margin-top:10px;">Сбросить</button>
-                
                 <button id="btnLogoutMobile" class="btn-logout-mobile admin-only btn-logout-trigger">Выйти из аккаунта</button>
             </div>
         </div>
@@ -87,6 +83,7 @@
 
     <button id="btnScrollTop" class="btn-scroll-top hidden"></button>
 
+    <!-- Модальное окно добавления -->
     <div id="addModal" class="modal-overlay hidden">
         <div class="modal-content">
             <div class="modal-header">
@@ -94,29 +91,25 @@
                 <button id="btnCloseAddModal" class="btn-close">&times;</button>
             </div>
             <form id="uploadForm">
+                
+                <label>Скриншот:</label>
+                <input type="file" id="imageInput" accept="image/*">
+                <!-- Уведомление об исчерпании лимита -->
+                <div id="ocrLimitWarning" class="warning-text hidden">Лимит авто-распознавания текста на сегодня исчерпан. Поля нужно заполнить вручную.</div>
+                
                 <label>Название покестопа (обязательно):</label>
-                <input type="text" id="stopName" required autocomplete="off">
-
-                <label>Тип открытки:</label>
-                <select id="stopDirection" style="width: 100%; margin-bottom: 5px;">
-                    <option value="from_me">Я (Подарил)</option>
-                    <option value="to_me">Мне (Получил)</option>
-                </select>
-
-                <label>Дата открытки (8 цифр ДДММГГГГ или календарь):</label>
-                <div class="date-input-group" style="margin-bottom:15px;">
-                    <input type="text" id="stopDateText" placeholder="Например: 19052026" maxlength="8" autocomplete="off">
-                    <div class="calendar-wrapper">
-                        <button type="button" class="calendar-btn" id="btnDateNative" title="Выбрать через календарь">📅</button>
-                        <input type="date" id="stopDateNative" class="native-date-input">
-                    </div>
+                <input type="text" id="stopName" class="track-input" required autocomplete="off">
+                
+                <!-- Предупреждение о дубликате -->
+                <div id="duplicateWarning" class="warning-box hidden">
+                    Такая открытка уже есть! <a href="#" id="viewDuplicateLink">Посмотреть её</a>
                 </div>
 
                 <div class="form-row">
                     <div>
                         <label>Страна:</label>
                         <div class="custom-combobox" id="comboCountryAdd">
-                            <input type="text" id="stopCountry" autocomplete="off">
+                            <input type="text" id="stopCountry" class="track-input" autocomplete="off">
                             <span class="combobox-arrow">▼</span>
                             <div class="combobox-dropdown hidden"></div>
                         </div>
@@ -124,7 +117,7 @@
                     <div>
                         <label>Город:</label>
                         <div class="custom-combobox" id="comboCityAdd">
-                            <input type="text" id="stopCity" autocomplete="off">
+                            <input type="text" id="stopCity" class="track-input" autocomplete="off">
                             <span class="combobox-arrow">▼</span>
                             <div class="combobox-dropdown hidden"></div>
                         </div>
@@ -133,22 +126,20 @@
                 
                 <label>Регион:</label>
                 <div class="custom-combobox" id="comboRegionAdd" style="margin-bottom:15px;">
-                    <input type="text" id="stopRegion" autocomplete="off">
+                    <input type="text" id="stopRegion" class="track-input" autocomplete="off">
                     <span class="combobox-arrow">▼</span>
                     <div class="combobox-dropdown hidden"></div>
                 </div>
 
-                <label>Скриншот (обрежется автоматически):</label>
-                <input type="file" id="imageInput" accept="image/*">
-
+                <label>Наличие у пользователей:</label>
                 <div id="addRecipientsGroup" class="checkbox-group">
-                    <label><input type="checkbox" id="chkAlbum"> Альбом</label>
+                    <label><input type="checkbox" id="chkSanjame"> Sanjame</label>
                     <label><input type="checkbox" id="chkFriend1"> Tupra</label>
                     <label><input type="checkbox" id="chkFriend2"> zxcCUMKILLER228pro</label>
                 </div>
 
                 <button type="submit" id="submitBtn" class="btn-submit" style="margin-top: 15px;">Сохранить открытку</button>
-                <div id="loadingIndicator" class="hidden" style="text-align: center; margin-top: 10px;">Обработка и сохранение...</div>
+                <div id="loadingIndicator" class="hidden" style="text-align: center; margin-top: 10px; color: var(--text-muted);">Обработка и сохранение...</div>
             </form>
         </div>
     </div>
