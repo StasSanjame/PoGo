@@ -36,6 +36,7 @@ const btnOpenAddModal = document.getElementById('btnOpenAddModal');
 const btnOpenAddModalMobile = document.getElementById('btnOpenAddModalMobile');
 const btnCloseModal = document.getElementById('btnCloseModal');
 const uploadForm = document.getElementById('uploadForm');
+const btnDeleteCardModal = document.getElementById('btnDeleteCardModal');
 
 const btnOpenFilters = document.getElementById('btnOpenFilters');
 const btnCloseFilters = document.getElementById('btnCloseFilters');
@@ -44,7 +45,7 @@ const btnScrollTop = document.getElementById('btnScrollTop');
 const btnLogin = document.getElementById('btnLogin');
 
 let allCards = [];
-let currentEditCard = null; // null = Add Mode, Object = Edit Mode
+let currentEditCard = null; 
 let currentCroppedBlob = null;
 
 // === АВТОРИЗАЦИЯ ===
@@ -79,7 +80,9 @@ async function updateOcrLimitDisplay() {
         let remaining = Math.max(0, 30 - used);
         document.getElementById('ocrLimitDisplay').textContent = `(Осталось: ${remaining})`;
     } catch (error) {
-        document.getElementById('ocrLimitDisplay').textContent = "";
+        // Если правила базы запрещают чтение system/ocr_limits, ставим заглушку
+        console.error("Нет доступа к чтению лимита (проверьте Firestore Rules):", error);
+        document.getElementById('ocrLimitDisplay').textContent = "(Осталось: ~)";
     }
 }
 
@@ -128,7 +131,6 @@ bindCombobox(document.getElementById('comboCountryAdd'), () => [...new Set(allCa
 bindCombobox(document.getElementById('comboCityAdd'), () => [...new Set(allCards.map(c => c.city).filter(Boolean))].sort());
 bindCombobox(document.getElementById('comboRegionAdd'), () => [...new Set(allCards.map(c => c.region).filter(Boolean))].sort());
 
-// Нормализация для поиска дубликатов
 function normalizeText(str) {
     if (!str) return "";
     return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-zа-яё0-9]/gi, "").toLowerCase();
@@ -209,7 +211,7 @@ function openModal(editData = null) {
     currentCroppedBlob = null;
     currentEditCard = editData;
     
-    updateOcrLimitDisplay();
+    updateOcrLimitDisplay(); // Запрашиваем остаток из базы
 
     const ocrToggle = document.getElementById('ocrToggle');
     const dropZone = document.getElementById('dropZone');
@@ -229,10 +231,21 @@ function openModal(editData = null) {
         document.getElementById('chkFriend1').checked = editData.friend1 || false;
         document.getElementById('chkFriend2').checked = editData.friend2 || false;
 
-        dropZone.classList.add('hidden');
-        previewContainer.classList.remove('hidden');
-        document.getElementById('previewImage').src = editData.imageUrl;
-        btnReplaceText.classList.remove('hidden');
+        // Показываем кнопку удаления только в режиме редактирования
+        btnDeleteCardModal.classList.remove('hidden');
+
+        // ИСПРАВЛЕНИЕ: Если в открытке есть скриншот - показываем его. Если нет - зону Drag&Drop
+        if (editData.imageUrl) {
+            dropZone.classList.add('hidden');
+            previewContainer.classList.remove('hidden');
+            document.getElementById('previewImage').src = editData.imageUrl;
+            btnReplaceText.classList.remove('hidden');
+        } else {
+            dropZone.classList.remove('hidden');
+            document.getElementById('dropZoneText').textContent = "Нажмите или перетащите скриншот сюда";
+            previewContainer.classList.add('hidden');
+            btnReplaceText.classList.add('hidden');
+        }
 
     } else {
         // Режим Добавления
@@ -243,6 +256,9 @@ function openModal(editData = null) {
         document.getElementById('dropZoneText').textContent = "Нажмите или перетащите скриншот сюда";
         previewContainer.classList.add('hidden');
         btnReplaceText.classList.add('hidden');
+        
+        // Скрываем кнопку удаления в режиме добавления
+        btnDeleteCardModal.classList.add('hidden');
     }
 
     postcardModal.classList.remove('hidden');
@@ -252,7 +268,7 @@ btnOpenAddModal.addEventListener('click', () => openModal(null));
 btnOpenAddModalMobile.addEventListener('click', () => openModal(null));
 btnCloseModal.addEventListener('click', () => postcardModal.classList.add('hidden'));
 
-// Кнопки замены (перенаправляют клик на input)
+// Кнопки замены
 const imageInput = document.getElementById('imageInput');
 document.getElementById('btnReplaceText').addEventListener('click', () => imageInput.click());
 document.getElementById('btnReplaceIcon').addEventListener('click', () => imageInput.click());
@@ -274,23 +290,19 @@ imageInput.addEventListener('change', async (e) => {
     document.getElementById('ocrLimitWarning').classList.add('hidden');
     document.getElementById('submitBtn').disabled = true;
 
-    // Сразу показываем текст обработки
     ocrStatus.textContent = ocrToggle.checked ? "⏳ Обработка и распознавание..." : "⏳ Обрезка изображения...";
     ocrStatus.style.color = "#60a5fa";
     ocrStatus.classList.remove('hidden');
 
     try {
-        // 1. Делаем обрезку 3:2 в любом случае
         const { blob, base64 } = await cropImage(file);
         currentCroppedBlob = blob;
         
-        // 2. Скрываем DropZone, Показываем Preview с новой картинкой
         document.getElementById('dropZone').classList.add('hidden');
         document.getElementById('previewContainer').classList.remove('hidden');
         document.getElementById('previewImage').src = "data:image/jpeg;base64," + base64;
         document.getElementById('btnReplaceText').classList.remove('hidden');
 
-        // 3. Если OCR включен - парсим текст
         if (ocrToggle.checked) {
             const ocrBase64 = await cropImageForOCR(file);
             const recognizeText = httpsCallable(functions, 'recognizePostcardText');
@@ -305,10 +317,10 @@ imageInput.addEventListener('change', async (e) => {
                 fillInputAndHighlight('stopCountry', data.country);
                 fillInputAndHighlight('stopRegion', data.region);
                 fillInputAndHighlight('stopCity', data.city);
-                checkDuplicate();
+                checkDuplicate(currentEditCard ? currentEditCard.id : null);
                 ocrStatus.textContent = "✅ Текст успешно распознан!";
                 ocrStatus.style.color = "#4ade80";
-                updateOcrLimitDisplay(); // Обновляем счетчик
+                updateOcrLimitDisplay();
             } else {
                 ocrStatus.textContent = "❌ Ошибка распознавания: " + data.error;
                 ocrStatus.style.color = "#f87171";
@@ -323,8 +335,6 @@ imageInput.addEventListener('change', async (e) => {
         ocrStatus.style.color = "#f87171";
     } finally {
         document.getElementById('submitBtn').disabled = false;
-        
-        // Скрываем надпись через 3 секунды, если всё ок
         setTimeout(() => {
             if (ocrStatus.textContent.includes('✅')) ocrStatus.classList.add('hidden');
         }, 3000);
@@ -372,7 +382,7 @@ function checkDuplicate(ignoreId = null) {
     }
 }
 
-// === СОХРАНЕНИЕ В FIRESTORE (ДОБАВЛЕНИЕ И ОБНОВЛЕНИЕ) ===
+// === СОХРАНЕНИЕ В FIRESTORE ===
 uploadForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     const btn = document.getElementById('submitBtn');
@@ -384,14 +394,12 @@ uploadForm.addEventListener('submit', async (e) => {
         let imageUrl = currentEditCard ? currentEditCard.imageUrl : null;
         let imagePath = currentEditCard ? currentEditCard.imagePath : null;
 
-        // Если картинка была заменена/загружена новая
         if (currentCroppedBlob) {
             imagePath = 'postcards/' + Date.now() + '_upload.jpg';
             const fileRef = ref(storage, imagePath);
             await uploadBytes(fileRef, currentCroppedBlob);
             imageUrl = await getDownloadURL(fileRef);
             
-            // Удаляем старую, если редактируем
             if (currentEditCard && currentEditCard.imagePath) {
                 await deleteObject(ref(storage, currentEditCard.imagePath)).catch(() => {});
             }
@@ -424,7 +432,18 @@ uploadForm.addEventListener('submit', async (e) => {
     }
 });
 
-// УДАЛЕНИЕ ОТКРЫТКИ ИЗ ГАЛЕРЕИ (Так как окна редактирования больше нет, удаление можно повесить на отдельную кнопку или оставить только для экстренных случаев. Чтобы не усложнять интерфейс, добавим логику удаления по двойному клику с подтверждением)
+// === УДАЛЕНИЕ ОТКРЫТКИ ===
+btnDeleteCardModal.addEventListener('click', async () => {
+    if (currentEditCard && confirm(`Удалить открытку "${currentEditCard.name}"?`)) {
+        try {
+            await deleteDoc(doc(db, "postcards", currentEditCard.id));
+            if (currentEditCard.imagePath) await deleteObject(ref(storage, currentEditCard.imagePath)).catch(() => {});
+            postcardModal.classList.add('hidden');
+        } catch (error) {
+            console.error("Ошибка при удалении:", error); alert("Не удалось удалить открытку.");
+        }
+    }
+});
 
 // === ПОДГРУЗКА ИЗ FIRESTORE И РЕНДЕР ===
 onSnapshot(query(collection(db, "postcards")), (snapshot) => {
@@ -518,8 +537,12 @@ function createCardReadView(data) {
     const locText = locArr.length > 0 ? locArr.join(', ') : "Локация не указана";
     
     card.innerHTML = `
-        <button class="btn-card-edit-pencil admin-only" title="Редактировать">✏️</button>
-        <button class="btn-card-delete admin-only" title="Удалить">🗑</button>
+        <button class="btn-card-edit-pencil admin-only" title="Редактировать">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 20h9"></path>
+                <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
+            </svg>
+        </button>
         <div class="card-img-wrapper">${imgHtml}</div>
         <div class="card-content">
             <div class="card-title">${data.name || "Без названия"}</div>
@@ -532,18 +555,8 @@ function createCardReadView(data) {
         </div>
     `;
     
-    // Клик по карандашу теперь открывает универсальное модальное окно!
+    // Клик по карандашу открывает модальное окно с загруженными данными
     card.querySelector('.btn-card-edit-pencil').onclick = () => openModal(data);
-    
-    // Кнопка удаления (добавил её в карточку для удобства, так как окно редактирования убрали)
-    card.querySelector('.btn-card-delete').onclick = async () => {
-        if (confirm(`Удалить открытку "${data.name}"?`)) {
-            try {
-                await deleteDoc(doc(db, "postcards", data.id));
-                if (data.imagePath) await deleteObject(ref(storage, data.imagePath));
-            } catch (error) { console.error(error); }
-        }
-    };
     
     return card;
 }
