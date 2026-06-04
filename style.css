@@ -158,9 +158,25 @@ body.is-admin .guest-only { display: none !important; }
     body.is-admin .btn-logout-mobile.admin-only { display: block !important; }
 
     /* Идеальные отступы для телефона */
-    .image-section-header { flex-wrap: wrap; margin-top: 10px; }
-    .section-title { width: 100%; margin-bottom: 5px; padding-bottom: 0; }
-    .ocr-controls { padding-left: 0; } /* Убираем пробел слева от тумблера */
+    .image-section-header { 
+        flex-direction: column; /* Выстраиваем элементы вертикально друг под другом */
+        align-items: flex-start; /* Прижимаем всё к левому краю */
+        gap: 5px; /* Идеальный отступ между строкой "Скриншот:" и триггером */
+        margin-top: 10px;
+    }
+    .section-title { 
+        margin: 0; /* Сбрасываем старые отступы, теперь за них отвечает gap */
+        padding: 0; 
+    }
+    .ocr-controls { 
+        margin-left: 0; 
+        padding-left: 0; 
+        display: flex;
+        align-items: center; /* Центрируем тумблер и текст по одной линии */
+    }
+    .switch {
+        margin-left: 0 !important; /* Насильно убиваем любой возможный отступ слева у самого тумблера */
+    }
 }
 
 main { padding: 20px; }
