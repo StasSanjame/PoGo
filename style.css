@@ -160,15 +160,15 @@ body.is-admin .guest-only { display: none !important; }
     /* Идеальные отступы для телефона */
     .image-section-header { 
         display: flex !important;
-        flex-direction: row !important; /* Возвращаем горизонтальное направление */
-        flex-wrap: wrap !important; /* Разрешаем элементам переноситься на новую строку */
-        align-items: center !important; /* Выравниваем элементы по вертикальному центру строки */
-        justify-content: space-between !important; /* Расталкиваем OCR (влево) и "Заменить" (вправо) */
+        flex-direction: row !important;
+        flex-wrap: wrap !important;
+        align-items: flex-end !important; /* Выравниваем ВСЮ вторую строку (OCR и кнопку) по нижнему краю */
+        justify-content: space-between !important;
         margin-top: 10px;
     }
     .section-title { 
-        width: 100% !important; /* Забирает всю ширину, заставляя всё остальное спрыгнуть на строку ниже */
-        margin: 0 0 5px 0 !important; /* Задаем отступ 5px только снизу */
+        width: 100% !important;
+        margin: 0 0 5px 0 !important; /* 5px - это отступ между Заголовком и второй строкой */
         padding: 0 !important;
         text-align: left !important;
     }
@@ -176,11 +176,16 @@ body.is-admin .guest-only { display: none !important; }
         margin: 0 !important; 
         padding: 0 !important; 
         display: flex !important;
-        align-items: center !important; /* Выравниваем текст и тумблер на одной линии */
+        align-items: flex-end !important; /* Прижимаем тумблер и текст к единому нижнему краю */
     }
     .switch {
         margin-left: 0 !important; 
-        /*transform: translateY(-5px) !important; /* Точечно опускаем тумблер на 5px вниз */
+        margin-bottom: 4px !important; /* Физически приподнимает тумблер вверх без фантомных отступов */
+        transform: none !important; /* Жестко отключаем визуальный сдвиг */
+    }
+    .ocr-text {
+        line-height: 1 !important;
+        padding-bottom: 3px !important; /* Легкая корректировка высоты текста, чтобы он стоял идеально ровно */
     }
 }
 
