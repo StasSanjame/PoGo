@@ -77,7 +77,7 @@ async function updateOcrLimitDisplay() {
             const data = docSnap.data();
             if (data.date === today) used = data.count;
         }
-        let remaining = Math.max(0, 30 - used);
+        let remaining = Math.max(0, 33 - used);
         document.getElementById('ocrLimitDisplay').textContent = `(Осталось: ${remaining})`;
     } catch (error) {
         // Если правила базы запрещают чтение system/ocr_limits, ставим заглушку
