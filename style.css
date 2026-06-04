@@ -180,7 +180,7 @@ body.is-admin .guest-only { display: none !important; }
     }
     .switch {
         margin-left: 0 !important; 
-        /*transform: translateY(5px) !important; /* Точечно опускаем тумблер на 5px вниз */
+        transform: translateY(-5px) !important; /* Точечно опускаем тумблер на 5px вниз */
     }
 }
 
