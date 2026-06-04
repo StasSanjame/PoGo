@@ -156,6 +156,18 @@ body.is-admin .guest-only { display: none !important; }
     .mobile-direction-block { width: 100%; display: flex; flex-direction: column; gap: 5px; margin-top: 10px; }
     
     body.is-admin .btn-logout-mobile.admin-only { display: block !important; }
+
+    /* Перенос "Скриншот:" на новую строку для телефонов */
+    .image-section-header {
+        flex-wrap: wrap; 
+    }
+    .section-title {
+        width: 100%;
+        margin-bottom: 12px; /* Отступ вниз до ползунка */
+    }
+    .ocr-controls {
+        padding-left: 0; /* Убираем отступ слева, чтобы прижать к левому краю */
+    }
 }
 
 main { padding: 20px; }
@@ -198,7 +210,7 @@ input[type="text"]:focus { border-color: var(--btn-primary); }
 .btn-replace-text { background: none; border: none; color: var(--btn-primary); font-size: 0.85rem; font-weight: 600; cursor: pointer; padding: 0; line-height: 1; padding-bottom: 2px; }
 .btn-replace-text:hover { text-decoration: underline; color: var(--text-main); }
 
-.switch { position: relative; display: inline-block; width: 34px; height: 20px; }
+.switch { position: relative; display: inline-block; width: 34px; height: 20px; transform: translateY(3px);}
 .switch input { opacity: 0; width: 0; height: 0; }
 .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: var(--bg-main); border: 1px solid var(--border-color); transition: .3s; }
 .slider:before { position: absolute; content: ""; height: 14px; width: 14px; left: 2px; bottom: 2px; background-color: var(--text-muted); transition: .3s; }
