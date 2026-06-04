@@ -159,23 +159,29 @@ body.is-admin .guest-only { display: none !important; }
 
     /* Идеальные отступы для телефона */
     .image-section-header { 
-        flex-direction: column; /* Выстраиваем элементы вертикально друг под другом */
-        align-items: flex-start; /* Прижимаем всё к левому краю */
-        gap: 5px; /* Идеальный отступ между строкой "Скриншот:" и триггером */
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: flex-start !important; /* Принудительно прижимаем ВСЁ к левому краю */
+        gap: 5px !important; /* Задаем тот самый идеальный отступ между строк */
         margin-top: 10px;
+        width: 100%;
     }
     .section-title { 
-        margin: 0; /* Сбрасываем старые отступы, теперь за них отвечает gap */
-        padding: 0; 
+        margin: 0 !important; 
+        padding: 0 !important;
+        text-align: left !important; /* Убиваем любое выравнивание по правому краю/центру */
+        width: 100%;
     }
     .ocr-controls { 
-        margin-left: 0; 
-        padding-left: 0; 
-        display: flex;
-        align-items: center; /* Центрируем тумблер и текст по одной линии */
+        margin: 0 !important; 
+        padding: 0 !important; 
+        display: flex !important;
+        align-items: center !important; 
+        justify-content: flex-start !important; /* Строго левый край для тумблера и текста */
+        width: 100%;
     }
     .switch {
-        margin-left: 0 !important; /* Насильно убиваем любой возможный отступ слева у самого тумблера */
+        margin-left: 0 !important; /* Убираем фантомные пробелы перед ползунком */
     }
 }
 
