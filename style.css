@@ -157,17 +157,10 @@ body.is-admin .guest-only { display: none !important; }
     
     body.is-admin .btn-logout-mobile.admin-only { display: block !important; }
 
-    /* Перенос "Скриншот:" на новую строку для телефонов */
-    .image-section-header {
-        flex-wrap: wrap; 
-    }
-    .section-title {
-        width: 100%;
-        margin-bottom: 12px; /* Отступ вниз до ползунка */
-    }
-    .ocr-controls {
-        padding-left: 0; /* Убираем отступ слева, чтобы прижать к левому краю */
-    }
+    /* Идеальные отступы для телефона */
+    .image-section-header { flex-wrap: wrap; margin-top: 10px; }
+    .section-title { width: 100%; margin-bottom: 5px; padding-bottom: 0; }
+    .ocr-controls { padding-left: 0; } /* Убираем пробел слева от тумблера */
 }
 
 main { padding: 20px; }
