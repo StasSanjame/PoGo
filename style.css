@@ -160,28 +160,27 @@ body.is-admin .guest-only { display: none !important; }
     /* Идеальные отступы для телефона */
     .image-section-header { 
         display: flex !important;
-        flex-direction: column !important;
-        align-items: flex-start !important; /* Принудительно прижимаем ВСЁ к левому краю */
-        gap: 5px !important; /* Задаем тот самый идеальный отступ между строк */
+        flex-direction: row !important; /* Возвращаем горизонтальное направление */
+        flex-wrap: wrap !important; /* Разрешаем элементам переноситься на новую строку */
+        align-items: center !important; /* Выравниваем элементы по вертикальному центру строки */
+        justify-content: space-between !important; /* Расталкиваем OCR (влево) и "Заменить" (вправо) */
         margin-top: 10px;
-        width: 100%;
     }
     .section-title { 
-        margin: 0 !important; 
+        width: 100% !important; /* Забирает всю ширину, заставляя всё остальное спрыгнуть на строку ниже */
+        margin: 0 0 5px 0 !important; /* Задаем отступ 5px только снизу */
         padding: 0 !important;
-        text-align: left !important; /* Убиваем любое выравнивание по правому краю/центру */
-        width: 100%;
+        text-align: left !important;
     }
     .ocr-controls { 
         margin: 0 !important; 
         padding: 0 !important; 
         display: flex !important;
-        align-items: center !important; 
-        justify-content: flex-start !important; /* Строго левый край для тумблера и текста */
-        width: 100%;
+        align-items: center !important; /* Выравниваем текст и тумблер на одной линии */
     }
     .switch {
-        margin-left: 0 !important; /* Убираем фантомные пробелы перед ползунком */
+        margin-left: 0 !important; 
+        transform: translateY(5px) !important; /* Точечно опускаем тумблер на 5px вниз */
     }
 }
 
