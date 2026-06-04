@@ -179,11 +179,25 @@ function resetAllFilters() {
     renderGallery();
 }
 document.getElementById('btnResetPC').addEventListener('click', resetAllFilters);
-document.getElementById('btnResetMobile').addEventListener('click', () => { resetAllFilters(); controlsRight.classList.remove('open'); });
 
-btnOpenFilters.addEventListener('click', () => controlsRight.classList.add('open'));
-btnCloseFilters.addEventListener('click', () => controlsRight.classList.remove('open'));
-btnApplyFilters.addEventListener('click', () => controlsRight.classList.remove('open'));
+// === БЛОКИРОВКА СКРОЛЛА ДЛЯ МЕНЮ ФИЛЬТРОВ ===
+btnOpenFilters.addEventListener('click', () => { 
+    controlsRight.classList.add('open');
+    document.body.style.overflow = 'hidden'; // Блокируем фон
+});
+btnCloseFilters.addEventListener('click', () => { 
+    controlsRight.classList.remove('open');
+    document.body.style.overflow = ''; // Возвращаем фон
+});
+btnApplyFilters.addEventListener('click', () => { 
+    controlsRight.classList.remove('open');
+    document.body.style.overflow = '';
+});
+document.getElementById('btnResetMobile').addEventListener('click', () => { 
+    resetAllFilters(); 
+    controlsRight.classList.remove('open'); 
+    document.body.style.overflow = '';
+});
 
 window.addEventListener('scroll', () => {
     if (window.scrollY > 400) btnScrollTop.classList.remove('hidden');
@@ -201,8 +215,15 @@ clearSearchBtn.addEventListener('click', () => {
     renderGallery();
 });
 
+function closeModal() {
+    postcardModal.classList.add('hidden');
+    document.body.style.overflow = ''; // Возвращаем скролл сайта
+}
+
 // === УНИВЕРСАЛЬНАЯ ЛОГИКА МОДАЛЬНОГО ОКНА ===
 function openModal(editData = null) {
+    document.body.style.overflow = 'hidden'; // Блокируем скролл сайта
+    
     uploadForm.reset();
     document.querySelectorAll('.track-input').forEach(i => i.classList.remove('auto-filled'));
     document.getElementById('duplicateWarning').classList.add('hidden');
@@ -266,7 +287,8 @@ function openModal(editData = null) {
 
 btnOpenAddModal.addEventListener('click', () => openModal(null));
 btnOpenAddModalMobile.addEventListener('click', () => openModal(null));
-btnCloseModal.addEventListener('click', () => postcardModal.classList.add('hidden'));
+// Заменяем старое закрытие на новую функцию
+btnCloseModal.addEventListener('click', closeModal);
 
 // Кнопки замены
 const imageInput = document.getElementById('imageInput');
@@ -372,7 +394,7 @@ function checkDuplicate(ignoreId = null) {
         warningBox.classList.remove('hidden');
         document.getElementById('viewDuplicateLink').onclick = (e) => {
             e.preventDefault();
-            postcardModal.classList.add('hidden');
+            closeModal();
             searchInput.value = document.getElementById('stopName').value.trim();
             clearSearchBtn.classList.remove('hidden');
             renderGallery();
@@ -423,7 +445,7 @@ uploadForm.addEventListener('submit', async (e) => {
             await addDoc(collection(db, "postcards"), dataObj);
         }
         
-        postcardModal.classList.add('hidden');
+        closeModal();
     } catch (error) {
         console.error(error); alert("Ошибка при сохранении.");
         ocrStatus.classList.add('hidden');
@@ -438,7 +460,7 @@ btnDeleteCardModal.addEventListener('click', async () => {
         try {
             await deleteDoc(doc(db, "postcards", currentEditCard.id));
             if (currentEditCard.imagePath) await deleteObject(ref(storage, currentEditCard.imagePath)).catch(() => {});
-            postcardModal.classList.add('hidden');
+            closeModal();
         } catch (error) {
             console.error("Ошибка при удалении:", error); alert("Не удалось удалить открытку.");
         }
