@@ -560,8 +560,9 @@ function createCardReadView(data) {
     
     card.innerHTML = `
         <button class="btn-card-edit-pencil admin-only" title="Редактировать">
-            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path>
+                <path d="M15 5l4 4"></path>
             </svg>
         </button>
         <div class="card-img-wrapper">${imgHtml}</div>
