@@ -164,11 +164,11 @@ body.is-admin .guest-only { display: none !important; }
         flex-wrap: wrap !important;
         align-items: flex-end !important; /* Выравниваем ВСЮ вторую строку (OCR и кнопку) по нижнему краю */
         justify-content: space-between !important;
-        /*margin-top: 10px;*/
+        margin-top: 10px;
     }
     .section-title { 
         width: 100% !important;
-        margin: 0 0 5px 0 !important; /* 5px - это отступ между Заголовком и второй строкой */
+        margin: 0 0 0px 0 !important; /* 5px - это отступ между Заголовком и второй строкой */
         padding: 0 !important;
         text-align: left !important;
     }
@@ -180,7 +180,7 @@ body.is-admin .guest-only { display: none !important; }
     }
     .switch {
         margin-left: 0 !important; 
-        /*margin-bottom: 4px !important; /* Физически приподнимает тумблер вверх без фантомных отступов */
+        margin-bottom: 1px !important; /* Физически приподнимает тумблер вверх без фантомных отступов */
         transform: none !important; /* Жестко отключаем визуальный сдвиг */
     }
     .ocr-text {
