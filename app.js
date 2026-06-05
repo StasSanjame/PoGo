@@ -143,7 +143,7 @@ async function cropImage(file) {
             const canvas = document.createElement('canvas');
             const ctx = canvas.getContext('2d');
             const topCropRatio = 0.58547; const targetHeightRatio = 0.66667; 
-            const topCrop = img.width * topCropRatio; const targetHeight = img.width * targetHeightRatio;
+            let topCrop = img.width * topCropRatio; const targetHeight = img.width * targetHeightRatio;
 
             // === ИСКЛЮЧЕНИЕ ДЛЯ ANDROID 1080x2400 ===
             if (img.width === 1080 && img.height === 2400) {
@@ -170,7 +170,7 @@ async function cropImageForOCR(file) {
             const ctx = canvas.getContext('2d');
             const W = img.width; const H = img.height;
             const cropX = W * 0.48;
-            const cropY = (H * 0.35) + 20;     
+            let cropY = (H * 0.35) + 20;     
             const cropWidth = (W * 0.38) + 6;   
             const cropHeight = (H * 0.20) - 24; 
 
