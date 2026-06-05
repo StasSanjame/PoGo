@@ -161,14 +161,16 @@ body.is-admin .guest-only { display: none !important; }
     .image-section-header { 
         display: flex !important;
         flex-direction: row !important;
-        flex-wrap: nowrap !important; /* Запрещаем перенос, жестко держим всё в одну строку */
-        align-items: center !important; /* Идеально центрируем по вертикали Заголовок и блок OCR */
-        justify-content: space-between !important; /* Расталкиваем: "Скриншот:" уходит влево, OCR — вправо */
-        margin-top: 10px;
-        width: 100%;
+        flex-wrap: nowrap !important; /* Строго удерживаем всё в одну строку */
+        align-items: center !important; /* Центрируем «Скриншот:» и блок OCR по вертикальной оси */
+        justify-content: space-between !important; /* Жестко расталкиваем элементы к левому и правому краям */
+        margin-top: 10px !important;
+        margin-bottom: 5px !important; /* <-- ЭТОТ ПАРАМЕТР контролирует физический отступ до самого скриншота */
+        width: 100% !important; /* ФОРСИРУЕМ растяжение контейнера на всю доступную ширину окна */
+        box-sizing: border-box !important;
     }
     .section-title { 
-        width: auto !important; /* Отменяем 100% ширину, элемент теперь компактный */
+        width: auto !important; 
         margin: 0 !important; 
         padding: 0 !important;
         text-align: left !important;
@@ -177,16 +179,17 @@ body.is-admin .guest-only { display: none !important; }
         margin: 0 !important; 
         padding: 0 !important; 
         display: flex !important;
-        align-items: center !important; /* Выравниваем тумблер и текст внутри блока OCR по одной линии */
+        align-items: center !important; /* Выравниваем тумблер и текст внутри блока OCR */
     }
     .switch {
         margin-left: 0 !important; 
-        margin-bottom: 0 !important; /* Сбрасываем прошлый нижний отступ-домкрат */
-        transform: none !important; /* Убираем любые прошлые визуальные сдвиги */
+        margin-right: 6px !important; /* Аккуратный отступ между тумблером и текстом "OCR..." */
+        margin-bottom: 4px !important; /* ФИЗИЧЕСКИ поджимает тумблер снизу вверх, выравнивая его по тексту */
+        transform: none !important; /* Никаких визуальных фантомов */
     }
     .ocr-text {
         line-height: normal !important;
-        padding-bottom: 0 !important; /* Сбрасываем прошлые корректировки */
+        padding-bottom: 0 !important; 
     }
 }
 
