@@ -412,7 +412,7 @@ uploadForm.addEventListener('submit', async (e) => {
     btn.disabled = true;
     
     const saveStatus = document.getElementById('saveStatus');
-    saveStatus.textContent = "⏳ Сохранение..."; 
+    saveStatus.textContent = "Сохранение..."; 
     saveStatus.style.color = "#60a5fa"; 
     saveStatus.classList.remove('hidden');
 
