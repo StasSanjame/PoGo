@@ -157,18 +157,19 @@ body.is-admin .guest-only { display: none !important; }
     
     body.is-admin .btn-logout-mobile.admin-only { display: block !important; }
 
-    /* Идеальные отступы для телефона */
+    /* Идеальное расположение в одну строку для телефона */
     .image-section-header { 
         display: flex !important;
         flex-direction: row !important;
-        flex-wrap: wrap !important;
-        align-items: flex-end !important; /* Выравниваем ВСЮ вторую строку (OCR и кнопку) по нижнему краю */
-        justify-content: space-between !important;
+        flex-wrap: nowrap !important; /* Запрещаем перенос, жестко держим всё в одну строку */
+        align-items: center !important; /* Идеально центрируем по вертикали Заголовок и блок OCR */
+        justify-content: space-between !important; /* Расталкиваем: "Скриншот:" уходит влево, OCR — вправо */
         margin-top: 10px;
+        width: 100%;
     }
     .section-title { 
-        width: 100% !important;
-        margin: 0 0 0px 0 !important; /* 5px - это отступ между Заголовком и второй строкой */
+        width: auto !important; /* Отменяем 100% ширину, элемент теперь компактный */
+        margin: 0 !important; 
         padding: 0 !important;
         text-align: left !important;
     }
@@ -176,16 +177,16 @@ body.is-admin .guest-only { display: none !important; }
         margin: 0 !important; 
         padding: 0 !important; 
         display: flex !important;
-        align-items: flex-end !important; /* Прижимаем тумблер и текст к единому нижнему краю */
+        align-items: center !important; /* Выравниваем тумблер и текст внутри блока OCR по одной линии */
     }
     .switch {
         margin-left: 0 !important; 
-        margin-bottom: 2px !important; /* Физически приподнимает тумблер вверх без фантомных отступов */
-        transform: none !important; /* Жестко отключаем визуальный сдвиг */
+        margin-bottom: 0 !important; /* Сбрасываем прошлый нижний отступ-домкрат */
+        transform: none !important; /* Убираем любые прошлые визуальные сдвиги */
     }
     .ocr-text {
-        line-height: 1 !important;
-        padding-bottom: 3px !important; /* Легкая корректировка высоты текста, чтобы он стоял идеально ровно */
+        line-height: normal !important;
+        padding-bottom: 0 !important; /* Сбрасываем прошлые корректировки */
     }
 }
 
