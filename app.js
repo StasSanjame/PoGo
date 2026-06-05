@@ -144,6 +144,15 @@ async function cropImage(file) {
             const ctx = canvas.getContext('2d');
             const topCropRatio = 0.58547; const targetHeightRatio = 0.66667; 
             const topCrop = img.width * topCropRatio; const targetHeight = img.width * targetHeightRatio;
+
+            // === ИСКЛЮЧЕНИЕ ДЛЯ ANDROID 1080x2400 ===
+            if (img.width === 1080 && img.height === 2400) {
+                // Сдвигаем линию обрезки вниз. 
+                // Если будет резать слишком высоко/низко, просто меняй эту цифру (например, 100 или 130)
+                topCrop += 113; 
+            }
+            // =========================================
+            
             canvas.width = img.width; canvas.height = targetHeight;
             ctx.drawImage(img, 0, topCrop, img.width, targetHeight, 0, 0, canvas.width, canvas.height);
             const base64 = canvas.toDataURL('image/jpeg').split(',')[1];
@@ -164,6 +173,15 @@ async function cropImageForOCR(file) {
             const cropY = (H * 0.35) + 20;     
             const cropWidth = (W * 0.38) + 6;   
             const cropHeight = (H * 0.20) - 24; 
+
+            // === ИСКЛЮЧЕНИЕ ДЛЯ ANDROID 1080x2400 ===
+            if (W === 1080 && H === 2400) {
+                // Корректируем прицел OCR. 
+                // Поскольку базовая высота (H) здесь больше, возможно, 113 придется немного подкрутить
+                cropY += 113; 
+            }
+            // =========================================
+            
             canvas.width = cropWidth; canvas.height = cropHeight;
             ctx.drawImage(img, cropX, cropY, cropWidth, cropHeight, 0, 0, cropWidth, cropHeight);
             resolve(canvas.toDataURL('image/jpeg').split(',')[1]);
