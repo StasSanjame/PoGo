@@ -180,7 +180,7 @@ body.is-admin .guest-only { display: none !important; }
     }
     .switch {
         margin-left: 0 !important; 
-        margin-bottom: 1px !important; /* Физически приподнимает тумблер вверх без фантомных отступов */
+        margin-bottom: 2px !important; /* Физически приподнимает тумблер вверх без фантомных отступов */
         transform: none !important; /* Жестко отключаем визуальный сдвиг */
     }
     .ocr-text {
