@@ -161,35 +161,36 @@ body.is-admin .guest-only { display: none !important; }
     .image-section-header { 
         display: flex !important;
         flex-direction: row !important;
-        flex-wrap: nowrap !important; /* Строго удерживаем всё в одну строку */
-        align-items: center !important; /* Центрируем «Скриншот:» и блок OCR по вертикальной оси */
-        justify-content: space-between !important; /* Жестко расталкиваем элементы к левому и правому краям */
+        flex-wrap: nowrap !important;
+        align-items: center !important;
+        width: 100% !important;
         margin-top: 10px !important;
-        margin-bottom: 5px !important; /* <-- ЭТОТ ПАРАМЕТР контролирует физический отступ до самого скриншота */
-        width: 100% !important; /* ФОРСИРУЕМ растяжение контейнера на всю доступную ширину окна */
-        box-sizing: border-box !important;
+        margin-bottom: 8px !important; /* Отступ до пунктирной рамки скриншота */
     }
+
     .section-title { 
-        width: auto !important; 
         margin: 0 !important; 
         padding: 0 !important;
-        text-align: left !important;
+        white-space: nowrap !important; /* Защита от переноса слова */
     }
+
     .ocr-controls { 
-        margin: 0 !important; 
-        padding: 0 !important; 
         display: flex !important;
-        align-items: center !important; /* Выравниваем тумблер и текст внутри блока OCR */
+        align-items: center !important;
+        margin: 0 0 0 auto !important; /* МАГИЯ: принудительно толкает весь этот блок максимально вправо */
+        padding: 0 !important;
+        gap: 8px !important; /* Жестко фиксируем расстояние между тумблером и текстом (можно менять) */
     }
+
     .switch {
-        margin-left: 0 !important; 
-        margin-right: 6px !important; /* Аккуратный отступ между тумблером и текстом "OCR..." */
-        margin-bottom: 4px !important; /* ФИЗИЧЕСКИ поджимает тумблер снизу вверх, выравнивая его по тексту */
-        transform: none !important; /* Никаких визуальных фантомов */
+        margin: 0 !important; /* Сносим все скрытые отступы */
+        transform: translateY(-3px) !important; /* ФИЗИЧЕСКИ приподнимаем тумблер вверх (меняй цифру, если нужно выше/ниже) */
     }
+
     .ocr-text {
-        line-height: normal !important;
-        padding-bottom: 0 !important; 
+        margin: 0 !important;
+        padding: 0 !important;
+        line-height: 1 !important; /* Убираем скрытую высоту шрифта, которая ломает центровку */
     }
 }
 
