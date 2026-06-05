@@ -149,7 +149,7 @@ async function cropImage(file) {
             if (img.width === 1080 && img.height === 2400) {
                 // Сдвигаем линию обрезки вниз. 
                 // Если будет резать слишком высоко/низко, просто меняй эту цифру (например, 100 или 130)
-                topCrop += 113; 
+                topCrop += 79; 
             }
             // =========================================
             
@@ -178,7 +178,7 @@ async function cropImageForOCR(file) {
             if (W === 1080 && H === 2400) {
                 // Корректируем прицел OCR. 
                 // Поскольку базовая высота (H) здесь больше, возможно, 113 придется немного подкрутить
-                cropY += 113; 
+                cropY += 79; 
             }
             // =========================================
             
@@ -346,6 +346,19 @@ imageInput.addEventListener('change', async (e) => {
 
         if (ocrToggle.checked) {
             const ocrBase64 = await cropImageForOCR(file);
+
+            // === ВРЕМЕННЫЙ ДЕБАГГЕР OCR (НАЧАЛО) ===
+            let debugImg = document.getElementById('debugOcrImg');
+            if (!debugImg) {
+                debugImg = document.createElement('img');
+                debugImg.id = 'debugOcrImg';
+                // Делаем картинку плавающей поверх всего сайта в левом верхнем углу
+                debugImg.style.cssText = 'position: fixed; top: 20px; left: 20px; z-index: 10000; border: 3px solid red; max-width: 300px; box-shadow: 0 0 15px rgba(0,0,0,0.8); background: white;';
+                document.body.appendChild(debugImg);
+            }
+            debugImg.src = "data:image/jpeg;base64," + ocrBase64;
+            // === ВРЕМЕННЫЙ ДЕБАГГЕР OCR (КОНЕЦ) ===
+            
             const recognizeText = httpsCallable(functions, 'recognizePostcardText');
             const response = await recognizeText({ image: ocrBase64 });
             const data = response.data;
