@@ -229,6 +229,7 @@ function openModal(editData = null) {
     document.getElementById('duplicateWarning').classList.add('hidden');
     document.getElementById('ocrLimitWarning').classList.add('hidden');
     document.getElementById('ocrStatus').classList.add('hidden');
+    document.getElementById('saveStatus').classList.add('hidden');
     currentCroppedBlob = null;
     currentEditCard = editData;
     
@@ -409,8 +410,11 @@ uploadForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     const btn = document.getElementById('submitBtn');
     btn.disabled = true;
-    const ocrStatus = document.getElementById('ocrStatus');
-    ocrStatus.textContent = "Сохранение..."; ocrStatus.style.color = "#60a5fa"; ocrStatus.classList.remove('hidden');
+    
+    const saveStatus = document.getElementById('saveStatus');
+    saveStatus.textContent = "⏳ Сохранение..."; 
+    saveStatus.style.color = "#60a5fa"; 
+    saveStatus.classList.remove('hidden');
 
     try {
         let imageUrl = currentEditCard ? currentEditCard.imageUrl : null;
