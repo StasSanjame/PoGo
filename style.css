@@ -163,34 +163,39 @@ body.is-admin .guest-only { display: none !important; }
         flex-direction: row !important;
         flex-wrap: nowrap !important;
         align-items: center !important;
+        justify-content: space-between !important; /* Главная команда для разнесения по краям */
         width: 100% !important;
+        align-self: stretch !important; /* БРОНЕБОЙНОЕ СВОЙСТВО: заставляет контейнер растянуться на всю ширину модального окна */
+        box-sizing: border-box !important;
         margin-top: 10px !important;
-        margin-bottom: 8px !important; /* Отступ до пунктирной рамки скриншота */
+        margin-bottom: 8px !important;
     }
 
     .section-title { 
         margin: 0 !important; 
         padding: 0 !important;
-        white-space: nowrap !important; /* Защита от переноса слова */
+        white-space: nowrap !important;
+        flex: 0 0 auto !important; /* Жестко запрещаем тексту сжиматься */
     }
 
     .ocr-controls { 
         display: flex !important;
         align-items: center !important;
-        margin: 0 0 0 auto !important; /* МАГИЯ: принудительно толкает весь этот блок максимально вправо */
+        margin: 0 !important; 
         padding: 0 !important;
-        gap: 8px !important; /* Жестко фиксируем расстояние между тумблером и текстом (можно менять) */
+        gap: 8px !important; /* Тот самый идеальный отступ, который мы нашли */
+        flex: 0 0 auto !important; /* Фиксируем блок с тумблером и текстом */
     }
 
     .switch {
-        margin: 0 !important; /* Сносим все скрытые отступы */
-        transform: translateY(-3px) !important; /* ФИЗИЧЕСКИ приподнимаем тумблер вверх (меняй цифру, если нужно выше/ниже) */
+        margin: 0 !important; 
+        transform: translateY(-3px) !important; /* Сохраняем идеальную высоту тумблера */
     }
 
     .ocr-text {
         margin: 0 !important;
         padding: 0 !important;
-        line-height: 1 !important; /* Убираем скрытую высоту шрифта, которая ломает центровку */
+        line-height: 1 !important; 
     }
 }
 
