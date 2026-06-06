@@ -172,13 +172,15 @@ async function cropImageForOCR(file) {
             const cropX = W * 0.48;
             let cropY = (H * 0.35) + 20;     
             const cropWidth = (W * 0.38) + 6;   
-            const cropHeight = (H * 0.20) - 24; 
-
+            let cropHeight = (H * 0.20) - 24; 
+            
             // === ИСКЛЮЧЕНИЕ ДЛЯ ANDROID 1080x2400 ===
             if (W === 1080 && H === 2400) {
-                // Корректируем прицел OCR. 
-                // Поскольку базовая высота (H) здесь больше, возможно, 113 придется немного подкрутить
-                cropY += 79; 
+                // Корректируем старт обрезки (79 - 19 = 60)
+                cropY += 60; 
+                
+                // Компенсируем искажение пропорций высоты
+                cropHeight -= 9; 
             }
             // =========================================
             
@@ -348,15 +350,15 @@ imageInput.addEventListener('change', async (e) => {
             const ocrBase64 = await cropImageForOCR(file);
 
             // === ВРЕМЕННЫЙ ДЕБАГГЕР OCR (НАЧАЛО) ===
-            // let debugImg = document.getElementById('debugOcrImg');
-            // if (!debugImg) {
-            //     debugImg = document.createElement('img');
-            //     debugImg.id = 'debugOcrImg';
-            //     // Делаем картинку плавающей поверх всего сайта в левом верхнем углу
-            //     debugImg.style.cssText = 'position: fixed; top: 20px; left: 20px; z-index: 10000; border: 3px solid red; max-width: 300px; box-shadow: 0 0 15px rgba(0,0,0,0.8); background: white;';
-            //     document.body.appendChild(debugImg);
-            // }
-            // debugImg.src = "data:image/jpeg;base64," + ocrBase64;
+            let debugImg = document.getElementById('debugOcrImg');
+            if (!debugImg) {
+                debugImg = document.createElement('img');
+                debugImg.id = 'debugOcrImg';
+                // Делаем картинку плавающей поверх всего сайта в левом верхнем углу
+                debugImg.style.cssText = 'position: fixed; top: 20px; left: 20px; z-index: 10000; border: 3px solid red; max-width: 300px; box-shadow: 0 0 15px rgba(0,0,0,0.8); background: white;';
+                document.body.appendChild(debugImg);
+            }
+            debugImg.src = "data:image/jpeg;base64," + ocrBase64;
             // === ВРЕМЕННЫЙ ДЕБАГГЕР OCR (КОНЕЦ) ===
             
             const recognizeText = httpsCallable(functions, 'recognizePostcardText');
