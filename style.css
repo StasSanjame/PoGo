@@ -63,10 +63,52 @@ button { cursor: pointer; border: none; border-radius: 6px; font-weight: 600; tr
 .btn-reset-clear { background-color: transparent; color: var(--text-muted); border: 1px solid var(--border-color); padding: 0 15px; height: 38px; font-weight: 600; border-radius: 6px; display: inline-flex; align-items: center; }
 .btn-reset-clear:hover { background-color: rgba(255, 255, 255, 0.1); color: white; }
 
-.btn-logout { background-color: transparent; padding: 0; width: 38px; height: 38px; font-size: 1.2rem; display: inline-flex; justify-content: center; align-items: center; border-radius: 6px; }
-.btn-logout:hover { background-color: rgba(255, 255, 255, 0.1); }
-.btn-logout-mobile { background: none; border: none; color: var(--text-muted); opacity: 0.6; font-size: 0.95rem; font-weight: 500; padding: 10px; width: 100%; text-align: center; cursor: pointer; transition: 0.2s; display: none !important; }
-.btn-logout-mobile:hover { opacity: 1; color: #ef4444; }
+.btn-logout {
+    background-color: transparent;
+    padding: 0;
+    width: 38px;
+    height: 38px;
+    border: none;             /* Убираем дефолтную рамку кнопки */
+    cursor: pointer;
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    border-radius: 6px;
+    color: #ffffff;           /* 1. Делает иконку внутри БЕЛОЙ */
+    box-sizing: border-box;
+    transition: background-color 0.2s;
+}
+
+.btn-logout:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+/* 2. Растягиваем саму SVG-иконку на всю доступную площадь кнопки */
+.btn-logout svg {
+    width: 100%;              /* Во всю ширину (38px) */
+    height: 100%;             /* Во всю высоту (38px) */
+    display: block;
+}
+
+/* Стили для мобильной версии (если необходимо тоже сделать белой) */
+.btn-logout-mobile {
+    background: none;
+    border: none;
+    color: #ffffff;           /* Сделали белым вместо var(--text-muted) */
+    opacity: 0.6;
+    font-size: 0.95rem;
+    font-weight: 500;
+    padding: 10px;
+    width: 100%;
+    text-align: center;
+    cursor: pointer;
+    transition: 0.2s;
+    display: none !important;
+}
+.btn-logout-mobile:hover {
+    opacity: 1;
+    color: #ef4444;           /* При наведении станет красной */
+}
 
 .mobile-btn {
     width: 42px; height: 42px; background: transparent; border: 1px solid rgba(255,255,255,0.1);
