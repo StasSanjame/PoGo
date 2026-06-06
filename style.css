@@ -65,7 +65,7 @@ button { cursor: pointer; border: none; border-radius: 6px; font-weight: 600; tr
 
 .btn-logout {
     background-color: transparent;
-    padding: 6;
+    padding: 8;
     width: 38px;
     height: 38px;
     border: none;             /* Убираем дефолтную рамку кнопки */
